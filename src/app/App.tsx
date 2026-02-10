@@ -9,7 +9,8 @@ import { Users, User, Sparkles, LogOut, ChevronDown } from "lucide-react";
 function AppContent() {
   const { user, loading, signOut } = useAuth();
   const userRole = user?.user_metadata?.role || 'rep';
-  const [view, setView] = useState<"rep" | "manager">(userRole === "manager" ? "manager" : "rep");
+  const isManager = userRole === 'manager';
+  const [view, setView] = useState<"rep" | "manager">(isManager ? "manager" : "rep");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -24,6 +25,13 @@ function AppContent() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Force rep users to stay on rep view
+  useEffect(() => {
+    if (!isManager && view === 'manager') {
+      setView('rep');
+    }
+  }, [isManager, view]);
 
   if (loading) {
     return (
@@ -62,55 +70,62 @@ function AppContent() {
               </div>
             </div>
             
-            {/* View Toggle Dropdown */}
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg border border-blue-500 transition-colors"
-              >
-                {view === "manager" ? (
-                  <>
-                    <Users className="w-4 h-4" />
-                    <span className="text-sm font-medium">Manager View</span>
-                  </>
-                ) : (
-                  <>
-                    <User className="w-4 h-4" />
-                    <span className="text-sm font-medium">Rep View</span>
-                  </>
+            {/* View Toggle - Only show for managers */}
+            {isManager ? (
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg border border-blue-500 transition-colors"
+                >
+                  {view === "manager" ? (
+                    <>
+                      <Users className="w-4 h-4" />
+                      <span className="text-sm font-medium">Manager View</span>
+                    </>
+                  ) : (
+                    <>
+                      <User className="w-4 h-4" />
+                      <span className="text-sm font-medium">Rep View</span>
+                    </>
+                  )}
+                  <ChevronDown className={`w-4 h-4 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {dropdownOpen && (
+                  <div className="absolute top-full left-0 mt-2 w-48 bg-[#1a1a24] border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
+                    <button
+                      onClick={() => {
+                        setView("rep");
+                        setDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
+                        view === "rep" ? "bg-blue-600/20 text-blue-400" : "text-gray-300 hover:bg-gray-800"
+                      }`}
+                    >
+                      <User className="w-4 h-4" />
+                      <span className="text-sm font-medium">Rep View</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setView("manager");
+                        setDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
+                        view === "manager" ? "bg-blue-600/20 text-blue-400" : "text-gray-300 hover:bg-gray-800"
+                      }`}
+                    >
+                      <Users className="w-4 h-4" />
+                      <span className="text-sm font-medium">Manager View</span>
+                    </button>
+                  </div>
                 )}
-                <ChevronDown className={`w-4 h-4 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
-              
-              {dropdownOpen && (
-                <div className="absolute top-full left-0 mt-2 w-48 bg-[#1a1a24] border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
-                  <button
-                    onClick={() => {
-                      setView("rep");
-                      setDropdownOpen(false);
-                    }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
-                      view === "rep" ? "bg-blue-600/20 text-blue-400" : "text-gray-300 hover:bg-gray-800"
-                    }`}
-                  >
-                    <User className="w-4 h-4" />
-                    <span className="text-sm font-medium">Rep View</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setView("manager");
-                      setDropdownOpen(false);
-                    }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
-                      view === "manager" ? "bg-blue-600/20 text-blue-400" : "text-gray-300 hover:bg-gray-800"
-                    }`}
-                  >
-                    <Users className="w-4 h-4" />
-                    <span className="text-sm font-medium">Manager View</span>
-                  </button>
-                </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 text-blue-400 rounded-lg border border-blue-500/30">
+                <User className="w-4 h-4" />
+                <span className="text-sm font-medium">Rep View</span>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-4">
             <div className="text-right">

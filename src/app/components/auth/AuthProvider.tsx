@@ -76,20 +76,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      // Demo login - localStorage'a yaz, Supabase'ye gitme
-      if (email === 'demo@example.com' && password === 'demopassword') {
-        const demoUser = {
+      // Demo login - Rep
+      if (email === 'rep@example.com' && password === 'demo123') {
+        const demoRep = {
           id: 'a0000000-0000-0000-0000-000000000001',
-          email: 'demo@example.com',
+          email: 'rep@example.com',
           user_metadata: {
-            name: 'Demo Rep',
+            name: 'Sarah Johnson',
             role: 'rep'
           }
         };
         
-        localStorage.setItem('demoUser', JSON.stringify(demoUser));
-        setUser(demoUser);
-        return { data: { user: demoUser }, error: null };
+        localStorage.setItem('demoUser', JSON.stringify(demoRep));
+        setUser(demoRep);
+        return { data: { user: demoRep }, error: null };
+      }
+
+      // Demo login - Manager
+      if (email === 'manager@example.com' && password === 'demo123') {
+        const demoManager = {
+          id: 'b0000000-0000-0000-0000-000000000001',
+          email: 'manager@example.com',
+          user_metadata: {
+            name: 'John Manager',
+            role: 'manager'
+          }
+        };
+        
+        localStorage.setItem('demoUser', JSON.stringify(demoManager));
+        setUser(demoManager);
+        return { data: { user: demoManager }, error: null };
       }
 
       // Gerçek Supabase auth

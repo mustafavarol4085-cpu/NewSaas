@@ -10,6 +10,21 @@
 -- DELETE FROM analysis WHERE call_id NOT IN (SELECT id FROM calls WHERE external_call_id LIKE 'fake-call%');
 -- DELETE FROM calls WHERE external_call_id NOT LIKE 'fake-call%';
 
+-- 0. AUTH USERS - Create demo auth users (run this manually in Supabase Auth)
+-- Note: These users need to be created via Supabase Auth Admin API or Dashboard
+-- For demo mode, the app uses localStorage. For production:
+-- 
+-- Create via Supabase Dashboard > Authentication > Users:
+-- 1. Email: rep@example.com, Password: demo123, User Metadata: {"name": "Sarah Johnson", "role": "rep"}
+-- 2. Email: manager@example.com, Password: demo123, User Metadata: {"name": "John Manager", "role": "manager"}
+--
+-- Or use this SQL (if you have direct access to auth schema):
+-- INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, created_at, updated_at)
+-- VALUES 
+-- ('a0000000-0000-0000-0000-000000000001'::uuid, 'rep@example.com', crypt('demo123', gen_salt('bf')), now(), '{"name": "Sarah Johnson", "role": "rep"}'::jsonb, now(), now()),
+-- ('b0000000-0000-0000-0000-000000000001'::uuid, 'manager@example.com', crypt('demo123', gen_salt('bf')), now(), '{"name": "John Manager", "role": "manager"}'::jsonb, now(), now())
+-- ON CONFLICT (email) DO NOTHING;
+
 -- 1. REPS - Sales Representatives
 -- Note: Since auth.users doesn't have these users yet, we need to remove the FK constraint temporarily
 -- or create standalone reps first
@@ -19,7 +34,7 @@ ALTER TABLE reps DROP CONSTRAINT IF EXISTS reps_id_fkey;
 
 -- Insert reps with generated IDs
 INSERT INTO reps (id, name, email, hire_date, status) VALUES
-('a0000000-0000-0000-0000-000000000001'::uuid, 'Sarah Johnson', 'sarah.johnson@company.com', '2024-06-15', 'active'),
+('a0000000-0000-0000-0000-000000000001'::uuid, 'Sarah Johnson', 'rep@example.com', '2024-06-15', 'active'),
 ('a0000000-0000-0000-0000-000000000002'::uuid, 'Tom Martinez', 'tom.martinez@company.com', '2025-01-10', 'active'),
 ('a0000000-0000-0000-0000-000000000003'::uuid, 'Emma Rodriguez', 'emma.rodriguez@company.com', '2023-09-20', 'active')
 ON CONFLICT (email) DO NOTHING;
@@ -29,7 +44,7 @@ ON CONFLICT (email) DO NOTHING;
 ALTER TABLE managers DROP CONSTRAINT IF EXISTS managers_id_fkey;
 
 INSERT INTO managers (id, name, email, team_name) VALUES
-('b0000000-0000-0000-0000-000000000001'::uuid, 'John Manager', 'manager@company.com', 'Sales Team Alpha')
+('b0000000-0000-0000-0000-000000000001'::uuid, 'John Manager', 'manager@example.com', 'Sales Team Alpha')
 ON CONFLICT (email) DO NOTHING;
 
 -- 3. Update existing CALLS with additional info

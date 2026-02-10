@@ -101,6 +101,22 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+-- 9b. Create trigger function that calls N8N via Edge Function
+CREATE OR REPLACE FUNCTION trigger_n8n_on_call_completion()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Eğer status 'completed' olarak değişirse, Edge Function'ı çağır
+  IF NEW.status = 'completed' AND (OLD.status IS NULL OR OLD.status != 'completed') THEN
+    -- Network request - async (fire and forget)
+    PERFORM net.http_post(
+      'https://jytjdryjgcxgnfwlgtwc.supabase.co/functions/v1/trigger-email',
+      jsonb_build_object('call_id', NEW.id::text)
+    );
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- 10. Add triggers for updated_at
 DROP TRIGGER IF EXISTS update_calls_updated_at ON calls;
 CREATE TRIGGER update_calls_updated_at BEFORE UPDATE ON calls
