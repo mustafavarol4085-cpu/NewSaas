@@ -255,3 +255,152 @@ export interface CallWithAICoaching extends CallWithDetails {
   questions?: Question[];
   master_coach_report?: MasterCoachReport;
 }
+// =====================================================
+// GOLDEN CALLS TYPES
+// =====================================================
+
+export interface GoldenCall {
+  id: string;
+  call_id: string;
+  rep_id: string;
+  manager_id?: string | null;
+  
+  // Scores
+  overall_score: number;
+  objection_score?: number;
+  discovery_score?: number;
+  closing_score?: number;
+  
+  // Metrics
+  talk_ratio?: number;
+  questions_asked?: number;
+  customer_objections?: number;
+  objections_handled?: number;
+  avg_question_quality?: number;
+  call_duration_seconds?: number;
+  
+  // Context
+  product_category?: string;
+  industry?: string;
+  deal_stage?: string;
+  
+  // Features
+  key_techniques?: string[];
+  language_patterns?: Record<string, any>;
+  objection_responses?: Record<string, string>;
+  discovery_questions?: string[];
+  winning_patterns?: Record<string, any>;
+  
+  // Metadata
+  is_active: boolean;
+  reason_selected: string;
+  percentile_rank?: number;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GoldenCallsComparison {
+  id: string;
+  rep_id: string;
+  call_id: string;
+  golden_call_id: string;
+  
+  // Deltas
+  performance_delta_percentage: number;
+  talk_ratio_delta?: number;
+  questions_count_delta?: number;
+  objection_handling_delta?: number;
+  
+  // Analysis
+  comparison_summary?: string;
+  strengths_vs_golden?: string[];
+  gaps_vs_golden?: string[];
+  recommendations_text?: string;
+  
+  created_at: string;
+}
+
+// =====================================================
+// KNOWLEDGE BASE TYPES
+// =====================================================
+
+export interface KBDocument {
+  id: string;
+  title: string;
+  description?: string;
+  document_type: 'playbook' | 'sop' | 'faq' | 'script' | 'objection_handling' | 'product_guide';
+  category?: string;
+  file_name?: string;
+  file_size?: number;
+  content_text: string;
+  
+  tags?: string[];
+  is_active: boolean;
+  is_archived: boolean;
+  version: number;
+  
+  uploaded_by?: string;
+  last_reviewed_at?: string;
+  
+  created_at: string;
+  updated_at: string;
+}
+
+export interface KBChunk {
+  id: string;
+  document_id: string;
+  chunk_index: number;
+  chunk_text: string;
+  token_count?: number;
+  
+  embedding: number[]; // 1536-dimensional vector
+  
+  // Metadata
+  document_title?: string;
+  document_type?: string;
+  category?: string;
+  section_title?: string;
+  keywords?: string[];
+  
+  // Flags
+  has_code_example?: boolean;
+  has_example?: boolean;
+  is_critical?: boolean;
+  
+  created_at: string;
+  updated_at: string;
+}
+
+export interface KBCoachingReference {
+  id: string;
+  call_id: string;
+  kb_chunk_id: string;
+  agent_analysis_id?: string;
+  coaching_plan_id?: string;
+  
+  reference_reason: string;
+  relevance_score: number;
+  
+  rep_viewed: boolean;
+  rep_found_helpful?: boolean;
+  
+  created_at: string;
+}
+
+export interface KBSearchLog {
+  id: string;
+  user_id?: string;
+  rep_id?: string;
+  
+  query_text: string;
+  query_type: 'company_gpt' | 'manual_search' | 'auto_suggestion';
+  
+  results_count?: number;
+  selected_chunk_id?: string;
+  
+  was_helpful?: boolean;
+  feedback_text?: string;
+  
+  created_at: string;
+}

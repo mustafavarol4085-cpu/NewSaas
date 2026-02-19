@@ -1,0 +1,4 @@
+id,name,email,manager_id,hire_date,status,avatar_url,created_at,updated_at
+a0000000-0000-0000-0000-000000000001,Sarah Johnson,sarah.johnson@company.com,,2024-06-15,active,,2026-01-25 19:22:50.321234+00,2026-01-25 19:22:50.321234+00
+a0000000-0000-0000-0000-000000000002,Tom Martinez,tom.martinez@company.com,,2025-01-10,active,,2026-01-25 19:22:50.321234+00,2026-01-25 19:22:50.321234+00
+a0000000-0000-0000-0000-000000000003,Emma Rodriguez,emma.rodriguez@company.com,,2023-09-20,active,,2026-01-25 19:22:50.321234+00,2026-01-25 19:22:50.321234+00

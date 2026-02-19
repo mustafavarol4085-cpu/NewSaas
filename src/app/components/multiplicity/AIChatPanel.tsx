@@ -4,6 +4,8 @@ import { Badge } from "@/app/components/ui/badge";
 import { Sparkles, X, Minimize2, Maximize2, Send, Lightbulb } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { streamChatMessage, type ChatMessage } from "../../../services/openaiService";
+import { searchKBBySimilarity } from "../../../services/kbService";
+import type { KBChunk } from "../../../services/types";
 
 interface Message {
   role: "user" | "ai";
@@ -438,6 +440,13 @@ What would you like to explore?`;
     setIsTyping(true);
 
     try {
+      let kbResults: KBChunk[] = [];
+      try {
+        kbResults = await searchKBBySimilarity(userMessageContent, 0.45, 3);
+      } catch (kbError) {
+        console.warn('KB search failed, continuing without KB context:', kbError);
+      }
+
       // Convert messages to ChatMessage format
       const chatMessages: ChatMessage[] = messages.map(msg => ({
         role: msg.role === 'ai' ? 'assistant' : 'user',
@@ -449,6 +458,21 @@ What would you like to explore?`;
         role: 'user',
         content: userMessageContent
       });
+
+      if (kbResults.length > 0) {
+        const kbContext = kbResults
+          .map((chunk, index) => {
+            const title = chunk.document_title || 'Untitled document';
+            const excerpt = chunk.chunk_text?.slice(0, 350) || '';
+            return `${index + 1}. ${title}\n${excerpt}`;
+          })
+          .join('\n\n');
+
+        chatMessages.push({
+          role: 'system',
+          content: `Relevant knowledge base references for the latest user question:\n${kbContext}\n\nUse these references when helpful. If you use them, cite document titles explicitly in the response.`,
+        });
+      }
 
       // Create placeholder for AI response
       const aiMessageId = Date.now();
@@ -468,6 +492,21 @@ What would you like to explore?`;
           const lastMessage = newMessages[newMessages.length - 1];
           if (lastMessage.role === 'ai') {
             lastMessage.content = fullResponse;
+          }
+          return newMessages;
+        });
+      }
+
+      if (kbResults.length > 0) {
+        const referencesText = kbResults
+          .map((chunk, index) => `• ${index + 1}. ${chunk.document_title || 'Untitled document'}`)
+          .join('\n');
+
+        setMessages((prev) => {
+          const newMessages = [...prev];
+          const lastMessage = newMessages[newMessages.length - 1];
+          if (lastMessage?.role === 'ai') {
+            lastMessage.content = `${lastMessage.content}\n\n📚 References from playbook:\n${referencesText}`;
           }
           return newMessages;
         });

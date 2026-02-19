@@ -4,11 +4,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
-const supabaseUrl = process.env.SUPABASE_URL || 'https://jytjdryjgcxgnfwlgtwc.supabase.co';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-const openaiKey = process.env.OPENAI_API_KEY || '';
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://jytjdryjgcxgnfwlgtwc.supabase.co';
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const openaiKey = process.env.VITE_OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
 
 if (!supabaseKey || !openaiKey) {
   console.error('❌ Missing required environment variables');
@@ -144,6 +144,7 @@ async function main() {
   const { data: calls, error: callsError } = await supabase
     .from('calls')
     .select('id, rep_name, customer_name')
+    .eq('source', 'ai_generated')
     .order('started_at', { ascending: false });
   
   if (callsError || !calls) {
@@ -161,20 +162,28 @@ async function main() {
     // Fetch transcript
     const { data: transcriptData, error: transcriptError } = await supabase
       .from('transcripts')
-      .select('transcript_text')
+      .select('segments')
       .eq('call_id', call.id)
       .single();
 
-    if (transcriptError || !transcriptData?.transcript_text) {
+    if (transcriptError || !transcriptData?.segments) {
       console.log(`   ⚠️ No transcript found, skipping...`);
       continue;
+    }
+
+    // Convert segments to transcript text
+    let transcript = '';
+    if (Array.isArray(transcriptData.segments)) {
+      transcript = transcriptData.segments
+        .map((s: any) => `[${s.timestamp}] ${s.speaker}: ${s.text}`)
+        .join('\n');
     }
 
     try {
       // Generate audio
       const audioFilePath = await generateAudioForCall(
         call.id,
-        transcriptData.transcript_text,
+        transcript,
         call.rep_name,
         call.customer_name
       );

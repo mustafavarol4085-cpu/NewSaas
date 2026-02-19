@@ -39,6 +39,7 @@ import { useState, useRef, useEffect } from "react";
 import { AIChatPanel } from "./AIChatPanel";
 import { AICoachPanel } from "./AICoachPanel";
 import { EnrichedScheduledCallCard } from "./EnrichedScheduledCallCard";
+import { useAuth } from "../auth/AuthProvider";
 import {
   useAllCalls,
   useAllAnalysis,
@@ -50,6 +51,8 @@ import {
 import { getAICoachingSummaryWithEmail } from "../../../services/aiCoachService";
 
 export function RepPerformanceDashboard() {
+  const { user } = useAuth();
+  const repName = user?.user_metadata?.name || 'Sarah Johnson';
   const [selectedCallId, setSelectedCallId] = useState<number>(1);
   const { data: supabaseCalls, loading } = useAllCalls();
   const { data: analysisData, loading: analysisLoading } = useAllAnalysis();
@@ -70,6 +73,7 @@ export function RepPerformanceDashboard() {
   const [scheduleSortBy, setScheduleSortBy] = useState<
     "date" | "name" | "type"
   >("date");
+  const [liveAssistantMessage, setLiveAssistantMessage] = useState<string | null>(null);
 
   // AI Coaching state
   const [aiCoachingData, setAiCoachingData] = useState<{
@@ -83,283 +87,10 @@ export function RepPerformanceDashboard() {
   // Audio player ref
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // Mock call data for detailed view (used when call is selected)
-  const mockCallsDetailed = [
-    {
-      id: 1,
-      rep: "Sarah Johnson",
-      customer: "Michael Chen",
-      company: "TechSolutions",
-      industry: "Cloud Migration",
-      type: "Demo",
-      date: "Jan 20, 2026",
-      time: "10:00 AM",
-      duration: "22:00",
-      score: 85,
-      dimensions: {
-        discovery: 85,
-        qualification: 82,
-        objectionHandling: 90,
-        closing: 78,
-        rapportBuilding: 88,
-      },
-      summary:
-        "Excellent execution. Strong customer understanding and rapport building. Demo scheduled successfully.",
-      coaching:
-        "Sarah demonstrated excellent discovery skills by asking probing questions about the customer's pain points. She effectively handled objections with data-driven responses. To improve: create more urgency in closing.",
-      audioUrl: null,
-      outcome: "Demo Scheduled for Tuesday 2 PM",
-      transcript: `Rep: Good morning, this is Sarah Johnson from TechSolutions. Am I speaking with Michael Chen?
-
-Customer: Yes, that's me. Hi Sarah.
-
-Rep: Great! Thanks for taking my call, Michael. I see you recently downloaded our whitepaper on cloud migration strategies. How's your company currently handling data storage?
-
-Customer: We're using a mix of on-premise servers and some basic cloud storage. It's becoming a bit of a headache to manage, honestly.
-
-Rep: I completely understand. Many of our clients were in a similar position before they switched. Can you tell me more about the specific challenges you're facing?
-
-Customer: Well, our IT team spends a lot of time on maintenance, and we've had a couple of near-misses with data security. Plus, our costs keep climbing.
-
-Rep: Those are exactly the pain points we help solve. Based on what you're telling me, it sounds like you have about 50-100 employees. Is that right?
-
-Customer: Actually, we're closer to 200 now. We've grown pretty fast in the last year.
-
-Rep: That's fantastic growth! Congratulations. With that size, you'd definitely benefit from our Enterprise plan. It includes 24/7 support, automated backups, and enterprise-grade security. May I ask, what's your timeline for making a decision on this?
-
-Customer: We're hoping to have something in place by end of Q1. So about two months from now.
-
-Rep: Perfect timing. Our implementation typically takes 3-4 weeks. I'd love to set up a demo for you and your IT lead next week. How does Tuesday or Wednesday look for you?
-
-Customer: Tuesday could work. What time?
-
-Rep: How about 2 PM EST? I'll send you a calendar invite with a custom demo link.
-
-Customer: Sounds good, Sarah. I'll make sure our CTO joins as well.
-
-Rep: Excellent! I'll also send over a couple of case studies from companies in your industry. Looking forward to showing you how we can solve those pain points. Have a great day, Michael!
-
-Customer: Thanks, you too!`,
-      aiInsights: [
-        {
-          timestamp: "3:15",
-          type: "positive",
-          text: "Great open-ended question: 'What challenges are you facing with your current solution?'",
-        },
-        {
-          timestamp: "8:45",
-          type: "positive",
-          text: "Excellent objection handling using ROI data to address pricing concern",
-        },
-        {
-          timestamp: "12:20",
-          type: "improvement",
-          text: "Missed opportunity to create urgency. Next time try saying, 'It sounds like based on your current initiatives getting a solution up and running sooner rather than later would be beneficial. We would love to help you do that, if we were able to offer Q1 pricing, would you feel comfortable moving forward by March 31st?'",
-        },
-      ],
-      talkRatio: {
-        rep: 65,
-        customer: 35,
-      },
-      keyMoments: [
-        { time: "3:20", label: "Discovery Phase" },
-        { time: "8:15", label: "Objection Handled" },
-        { time: "13:40", label: "Demo Scheduled" },
-      ],
-      strengths: [
-        "Strong questioning technique in discovery",
-        "Confident product knowledge",
-        "Excellent rapport with C-level stakeholder",
-      ],
-      improvements: [
-        "Add urgency in closing",
-        "Reduce talk-time ratio (currently 65/35)",
-      ],
-    },
-    {
-      id: 2,
-      rep: "Tom",
-      customer: "Jennifer Wu",
-      company: "MarketPro",
-      industry: "Marketing Automation",
-      type: "Outbound",
-      date: "Jan 20, 2026",
-      time: "2:30 PM",
-      duration: "11:00",
-      score: 52,
-      dimensions: {
-        discovery: 45,
-        qualification: 38,
-        objectionHandling: 55,
-        closing: 42,
-        rapportBuilding: 80,
-      },
-      summary:
-        "Needs improvement. Weak qualification and objection handling. Customer rejected and requested removal.",
-      coaching:
-        "Tom needs to focus on discovery techniques and qualification framework. Good rapport but needs stronger objection handling and better timing on pitch.",
-      outcome: "Rejected - Removal Requested",
-      audioUrl: null,
-      transcript: `Rep: Hi, is this Jennifer?
-
-Customer: Yes, who's calling?
-
-Rep: This is Tom from MarketPro. I wanted to talk to you about our marketing automation software.
-
-Customer: I'm actually pretty busy right now. Can you send me an email instead?
-
-Rep: I understand you're busy, but this will only take a minute. We have a special promotion running this week—
-
-Customer: Look, I really don't have time for a sales pitch right now.
-
-Rep: I get it, but our software has helped hundreds of companies increase their ROI by up to 300%. Don't you want to hear how?
-
-Customer: Not really. We already use a marketing platform and we're happy with it.
-
-Rep: But have you considered the features we offer? We have AI-powered email campaigns, social media scheduling, and analytics dashboards. What platform are you using now?
-
-Customer: I don't think I need to share that. I'm sorry, but I really need to go.
-
-Rep: Wait, wait. What if I could get you a 20% discount? Our manager approved it for this week only.
-
-Customer: I appreciate the offer, but I'm not interested. Please remove me from your call list.
-
-Rep: Are you sure? This is a limited-time offer and—
-
-Customer: Yes, I'm sure. Goodbye.`,
-      aiInsights: [
-        {
-          timestamp: "1:20",
-          type: "negative",
-          text: "Started pitch too early - customer didn't show buying signals yet",
-        },
-        {
-          timestamp: "3:45",
-          type: "improvement",
-          text: "Weak qualification - didn't ask about budget or decision timeline",
-        },
-        {
-          timestamp: "5:10",
-          type: "negative",
-          text: "Struggled with pricing objection - became defensive instead of exploring concerns",
-        },
-      ],
-      talkRatio: {
-        rep: 75,
-        customer: 25,
-      },
-      keyMoments: [
-        { time: "1:00", label: "Early Pitch Attempt" },
-        { time: "3:30", label: "Pricing Objection" },
-        { time: "5:45", label: "Customer Rejection" },
-      ],
-      strengths: ["Good initial rapport building", "Enthusiastic tone"],
-      improvements: [
-        "Improve discovery and qualification",
-        "Better objection handling techniques",
-        "Reduce talk-time ratio significantly",
-        "Listen more before pitching",
-      ],
-    },
-    {
-      id: 3,
-      rep: "Emma Rodriguez",
-      customer: "David Kim",
-      company: "FinanceHub",
-      industry: "Financial Services",
-      type: "Discovery",
-      date: "Jan 20, 2026",
-      time: "4:00 PM",
-      duration: "18:00",
-      score: 88,
-      dimensions: {
-        discovery: 92,
-        qualification: 88,
-        objectionHandling: 85,
-        closing: 82,
-        rapportBuilding: 90,
-      },
-      summary:
-        "Outstanding discovery call. Excellent questioning and qualification. Customer requested proposal by Friday.",
-      coaching:
-        "Emma demonstrated exceptional discovery skills with deep probing questions. Strong qualification and rapport building. Customer is highly engaged and requested proposal.",
-      outcome: "Proposal Requested by Friday",
-      audioUrl: null,
-      transcript: `Rep: Hello David, this is Emma Rodriguez from FinanceHub. Thanks for scheduling this call with me.
-
-Customer: Hi Emma, yes, I've been looking into your platform for our accounting needs.
-
-Rep: Wonderful! Before we dive in, I'd love to understand more about your current setup. What's working well, and what's not working so well with your current accounting system?
-
-Customer: We're using QuickBooks right now. It's okay for basic stuff, but we struggle with multi-currency transactions since we work with international clients. Also, the reporting features are pretty limited.
-
-Rep: Got it. So multi-currency support and advanced reporting are key priorities. How many international transactions would you say you process monthly?
-
-Customer: Probably around 30-40 transactions across five different currencies.
-
-Rep: That makes sense. Our platform handles that seamlessly with real-time exchange rates. On the reporting side, what specific reports would be most valuable to you?
-
-Customer: We need cash flow forecasting, P&L by department, and ideally some custom dashboards for our board meetings.
-
-Rep: All of that is included in our Professional tier. One thing I should mention—there is a learning curve for the advanced features. Would your team be open to a training session as part of the onboarding?
-
-Customer: That would actually be really helpful. How long does onboarding usually take?
-
-Rep: Typically 2-3 weeks with training. I won't sugarcoat it—the first month can be an adjustment period, but our clients consistently tell us it's worth it. We'd assign you a dedicated account manager to help with the transition.
-
-Customer: What about pricing? I saw your website lists $299/month, but we're a small team of just 8 people.
-
-Rep: For your size and needs, the Professional plan at $299 is the right fit. I don't have flexibility on the monthly rate, but I can offer you the first month free to give your team time to get comfortable with the platform. How does that sound?
-
-Customer: That's fair. I think this could work for us. Can you send me a proposal with the implementation timeline?
-
-Rep: Absolutely. I'll have that to you by tomorrow morning. And just to set expectations, the proposal will include the onboarding schedule, training sessions, and a direct line to your account manager. Sound good?
-
-Customer: Perfect. I'll review it with my CFO and get back to you by Friday.
-
-Rep: Great! I'll also include some client references in your industry. Thanks for your time today, David.
-
-Customer: Thanks, Emma. Talk soon!`,
-      aiInsights: [
-        {
-          timestamp: "0:45",
-          type: "positive",
-          text: "Perfect call opening - referenced previous conversation details",
-        },
-        {
-          timestamp: "2:30",
-          type: "positive",
-          text: "Exceptional discovery question: 'What would success look like in 6 months?'",
-        },
-        {
-          timestamp: "4:15",
-          type: "positive",
-          text: "Strong qualification - confirmed budget, timeline, and decision makers",
-        },
-      ],
-      talkRatio: {
-        rep: 40,
-        customer: 60,
-      },
-      keyMoments: [
-        { time: "0:30", label: "Discovery Phase" },
-        { time: "2:45", label: "Pain Points Identified" },
-        { time: "4:20", label: "Proposal Requested" },
-      ],
-      strengths: [
-        "Outstanding discovery technique",
-        "Perfect talk-listen ratio",
-        "Strong qualification framework",
-        "Excellent rapport building",
-      ],
-      improvements: ["Continue this excellent execution"],
-    },
-  ];
-
   // Function to create short AI summary from coaching feedback
   const createShortSummary = (feedback: string | undefined): string => {
     if (!feedback) return "Analysis in progress...";
-    
+
     // Extract first 2 sentences or first 120 characters
     const sentences = feedback.split(/[.!?]+/).filter(s => s.trim().length > 0);
     if (sentences.length > 0) {
@@ -432,8 +163,10 @@ Customer: Thanks, Emma. Talk soon!`,
   };
 
   // Convert Supabase calls to display format with analysis data
-  const displayCalls = supabaseCalls
-    ? (supabaseCalls as any[]).map((call, idx) => {
+  const displayCalls = supabaseCalls && (supabaseCalls as any[]).length > 0
+    ? (supabaseCalls as any[])
+        .filter((call: any) => call.rep_name === repName)
+        .map((call, idx) => {
         // Find matching analysis for this call
         const callAnalysis = analysisData?.find((a: any) => a.call_id === call.id);
 
@@ -506,11 +239,44 @@ Customer: Thanks, Emma. Talk soon!`,
         };
         return mappedCall;
       })
-    : mockCallsDetailed;
+    : [];
+
+  // Default empty call object for when no calls are available
+  const defaultCall = {
+    id: 0,
+    rep: repName,
+    customer: "No calls available",
+    company: "N/A",
+    industry: "N/A",
+    type: "N/A",
+    date: "N/A",
+    time: "N/A",
+    duration: "00:00",
+    score: 0,
+    dimensions: {
+      discovery: 0,
+      qualification: 0,
+      objectionHandling: 0,
+      closing: 0,
+      rapportBuilding: 0,
+    },
+    summary: "No calls available for this rep yet.",
+    coaching: "Start making calls to get coaching feedback.",
+    strengths: [],
+    improvements: [],
+    outcome: "N/A",
+    audioUrl: null,
+    transcript: "No transcript available",
+    aiInsights: [],
+    talkRatio: { rep: 50, customer: 50 },
+    keyMoments: [],
+  };
 
   // Fallback untuk seçili çağrı
   const selectedCall =
-    displayCalls.find((c) => c.id === selectedCallId) || displayCalls[0];
+    displayCalls && displayCalls.length > 0
+      ? displayCalls.find((c) => c.id === selectedCallId) || displayCalls[0]
+      : defaultCall;
 
   // Fetch AI coaching data when call is selected
   useEffect(() => {
@@ -658,7 +424,7 @@ Customer: Thanks, Emma. Talk soon!`,
     return mins * 60 + secs;
   };
 
-  const callDuration = parseDuration(selectedCall.duration);
+  const callDuration = selectedCall ? parseDuration(selectedCall.duration) : 0;
 
   // Transform scheduled calls from Supabase to display format
   console.log('📅 Total scheduled calls from Supabase:', scheduledCallsData?.length, scheduledCallsData);
@@ -669,15 +435,7 @@ Customer: Thanks, Emma. Talk soon!`,
 
   const scheduledCalls = scheduledCallsData
     ? (scheduledCallsData as any[])
-        .filter((call) => {
-          // Filter out calls that have already passed
-          const scheduledDate = call.scheduled_date ? new Date(call.scheduled_date) : null;
-          if (!scheduledDate) return false;
-
-          // Convert to CST for comparison
-          const scheduledCST = new Date(scheduledDate.toLocaleString("en-US", { timeZone: "America/Chicago" }));
-          return scheduledCST.getTime() > currentTimeCST.getTime();
-        })
+        .filter((call) => (call.rep_id === user?.id || call.rep_name === repName) && new Date(call.scheduled_date) > currentTimeCST)
         .map((call, idx) => {
           const scheduledDate = call.scheduled_date ? new Date(call.scheduled_date) : null;
           return {
@@ -708,6 +466,7 @@ Customer: Thanks, Emma. Talk soon!`,
             preparationTips: Array.isArray(call.preparation_tips)
               ? call.preparation_tips
               : ["Prepare for the call"],
+            rawCall: call,
           };
         })
     : [];
@@ -757,14 +516,31 @@ Customer: Thanks, Emma. Talk soon!`,
   };
 
   // Audio player handlers
-  const handlePlayPause = () => {
+  const handlePlayPause = async () => {
     if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
-      } else {
-        audioRef.current.play();
+      try {
+        if (isPlaying) {
+          audioRef.current.pause();
+          setIsPlaying(false);
+        } else {
+          const playPromise = audioRef.current.play();
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => {
+                setIsPlaying(true);
+              })
+              .catch((error) => {
+                console.error('Play error:', error);
+                setIsPlaying(false);
+              });
+          } else {
+            setIsPlaying(true);
+          }
+        }
+      } catch (err) {
+        console.error('Audio control error:', err);
+        setIsPlaying(false);
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
@@ -871,7 +647,7 @@ Customer: Thanks, Emma. Talk soon!`,
       <div className="bg-gradient-to-r from-[#1e3a8a] to-[#1e40af] text-white px-8 py-8 shadow-2xl border-b border-cyan-500/20">
         <div className="max-w-[1600px] mx-auto">
           <h1 className="text-3xl font-bold mb-2 text-cyan-400">
-            Multiplicity Rep Performance Dashboard
+            {repName} - Performance Dashboard
           </h1>
           <p className="text-cyan-200">Real-Time Call Scoring & Coaching Insights</p>
         </div>
@@ -1082,22 +858,29 @@ Customer: Thanks, Emma. Talk soon!`,
                   </select>
                 </div>
               </div>
+              {liveAssistantMessage && (
+                <p className="text-xs text-amber-300 mb-3">{liveAssistantMessage}</p>
+              )}
 
               <div className="space-y-3">
-                {scheduledCallsData && scheduledCallsData.length > 0 ? (
-                  scheduledCallsData
-                    .filter((call: any) => {
-                      const scheduledDate = call.scheduled_date ? new Date(call.scheduled_date) : null;
-                      if (!scheduledDate) return false;
-                      const nowCST = new Date().toLocaleString("en-US", { timeZone: "America/Chicago" });
-                      const currentTimeCST = new Date(nowCST);
-                      return scheduledDate > currentTimeCST;
-                    })
-                    .map((call: any) => (
-                      <div key={call.id} className="bg-[#1e293b]/50 rounded-lg">
-                        <EnrichedScheduledCallCard call={call} />
+                {sortedScheduledCalls.length > 0 ? (
+                  sortedScheduledCalls.map((call: any) => (
+                    <div key={call.id} className="bg-[#1e293b]/50 rounded-lg">
+                      <EnrichedScheduledCallCard call={call.rawCall} />
+                      <div className="px-4 pb-4">
+                        <Button
+                          onClick={() =>
+                            setLiveAssistantMessage(
+                              `Live Call Assistant is not completed yet for ${call.customer}.`
+                            )
+                          }
+                          className="w-full bg-cyan-700/40 hover:bg-cyan-700/60 text-cyan-100 border border-cyan-500/30"
+                        >
+                          Start with Live Call Assistant
+                        </Button>
                       </div>
-                    ))
+                    </div>
+                  ))
                 ) : (
                   <p className="text-gray-400 text-sm text-center py-4">
                     No scheduled calls for today
@@ -1174,22 +957,31 @@ Customer: Thanks, Emma. Talk soon!`,
               {/* Audio Player */}
               <div className="py-6 border-b border-gray-700">
                 {/* Hidden audio element - always render to maintain ref */}
-                <audio
-                  ref={audioRef}
-                  src={selectedCall.audioUrl || ''}
-                  preload="auto"
-                  onLoadedMetadata={() => {
-                    if (audioRef.current) {
-                      setDuration(Math.floor(audioRef.current.duration));
-                    }
-                  }}
-                  onTimeUpdate={() => {
-                    if (audioRef.current) {
-                      setCurrentTime(Math.floor(audioRef.current.currentTime));
-                    }
-                  }}
-                  onEnded={() => setIsPlaying(false)}
-                />
+                {selectedCall.audioUrl && (
+                  <audio
+                    ref={audioRef}
+                    crossOrigin="anonymous"
+                    preload="auto"
+                    onLoadedMetadata={() => {
+                      if (audioRef.current) {
+                        setDuration(Math.floor(audioRef.current.duration));
+                      }
+                    }}
+                    onTimeUpdate={() => {
+                      if (audioRef.current) {
+                        setCurrentTime(Math.floor(audioRef.current.currentTime));
+                      }
+                    }}
+                    onEnded={() => setIsPlaying(false)}
+                    onError={(e) => {
+                      console.error('❌ Audio error:', e);
+                      setIsPlaying(false);
+                    }}
+                  >
+                    <source src={selectedCall.audioUrl} type="audio/mpeg" />
+                    Your browser does not support the audio element.
+                  </audio>
+                )}
 
                 <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
                   {!selectedCall.audioUrl && (
@@ -1201,14 +993,16 @@ Customer: Thanks, Emma. Talk soon!`,
                     <Button
                       onClick={handleSkipBack}
                       size="sm"
-                      className="bg-gray-700 hover:bg-gray-600 text-white border-0"
+                      disabled={!selectedCall.audioUrl}
+                      className="bg-gray-700 hover:bg-gray-600 text-white border-0 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <SkipBack className="w-4 h-4" />
                     </Button>
                     <Button
                       onClick={handlePlayPause}
                       size="sm"
-                      className="bg-cyan-500 hover:bg-cyan-600 text-white border-0 w-10 h-10"
+                      disabled={!selectedCall.audioUrl}
+                      className="bg-cyan-500 hover:bg-cyan-600 text-white border-0 w-10 h-10 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isPlaying ? (
                         <Pause className="w-5 h-5" />
@@ -1219,7 +1013,8 @@ Customer: Thanks, Emma. Talk soon!`,
                     <Button
                       onClick={handleSkipForward}
                       size="sm"
-                      className="bg-gray-700 hover:bg-gray-600 text-white border-0"
+                      disabled={!selectedCall.audioUrl}
+                      className="bg-gray-700 hover:bg-gray-600 text-white border-0 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <SkipForward className="w-4 h-4" />
                     </Button>
@@ -1243,7 +1038,8 @@ Customer: Thanks, Emma. Talk soon!`,
                     </div>
                     <button
                       onClick={handleMuteToggle}
-                      className="hover:bg-gray-700 p-2 rounded transition-colors"
+                      disabled={!selectedCall.audioUrl}
+                      className="hover:bg-gray-700 p-2 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isMuted ? (
                         <VolumeX className="w-5 h-5 text-gray-400" />

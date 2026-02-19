@@ -8,13 +8,19 @@ export function DemoLoginPage() {
   const { signIn } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [selectedRole, setSelectedRole] = useState<'rep' | 'manager'>('rep');
-  const [email, setEmail] = useState('rep@example.com');
+  const [selectedRole, setSelectedRole] = useState<'rep' | 'manager' | 'admin'>('rep');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('demo123');
 
-  const handleRoleChange = (role: 'rep' | 'manager') => {
+  const handleRoleChange = (role: 'rep' | 'manager' | 'admin') => {
     setSelectedRole(role);
-    setEmail(role === 'rep' ? 'rep@example.com' : 'manager@example.com');
+    setEmail(
+      role === 'rep'
+        ? ''
+        : role === 'manager'
+        ? 'manager@example.com'
+        : 'admin@example.com'
+    );
     setPassword('demo123');
     setError('');
   };
@@ -56,7 +62,7 @@ export function DemoLoginPage() {
               <label className="block text-sm font-semibold text-gray-300 mb-3">
                 Select Your Role
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <button
                   type="button"
                   onClick={() => handleRoleChange('rep')}
@@ -81,6 +87,18 @@ export function DemoLoginPage() {
                   <Users className="w-5 h-5" />
                   <span>Manager</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => handleRoleChange('admin')}
+                  className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all duration-200 ${
+                    selectedRole === 'admin'
+                      ? 'bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-lg shadow-purple-500/30 scale-105'
+                      : 'bg-gray-800/50 text-gray-400 hover:bg-gray-800 hover:text-gray-300'
+                  }`}
+                >
+                  <Lock className="w-5 h-5" />
+                  <span>Admin</span>
+                </button>
               </div>
             </div>
 
@@ -91,28 +109,82 @@ export function DemoLoginPage() {
                   <>
                     <span className="font-semibold text-blue-400">Rep Access:</span> View your own performance metrics and call analytics
                   </>
-                ) : (
+                ) : selectedRole === 'manager' ? (
                   <>
                     <span className="font-semibold text-cyan-400">Manager Access:</span> View team performance and switch between all dashboards
+                  </>
+                ) : (
+                  <>
+                    <span className="font-semibold text-purple-400">Admin Access:</span> Full role-based access with manager + rep views
                   </>
                 )}
               </p>
             </div>
 
+            {/* Rep Selection - Only show for Rep role */}
+            {selectedRole === 'rep' && (
+              <div className="space-y-3">
+                <label className="block text-sm font-semibold text-gray-300">
+                  Select Your Name
+                </label>
+                <div className="grid grid-cols-1 gap-2">
+                  {[
+                    { name: 'Sarah Johnson', email: 'Sarah Johnson' },
+                    { name: 'Tom Martinez', email: 'Tom Martinez' },
+                    { name: 'Emma Rodriguez', email: 'Emma Rodriguez' }
+                  ].map(rep => (
+                    <button
+                      key={rep.email}
+                      type="button"
+                      onClick={() => {
+                        setEmail(rep.email);
+                        setPassword('demo123');
+                      }}
+                      className={`flex items-center justify-center px-4 py-3 rounded-xl font-semibold transition-all duration-200 ${
+                        email === rep.email
+                          ? 'bg-gradient-to-r from-green-600 to-green-500 text-white shadow-lg shadow-green-500/30'
+                          : 'bg-gray-800/50 text-gray-400 hover:bg-gray-800 hover:text-gray-300'
+                      }`}
+                    >
+                      {rep.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Email Input */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-300">
                 <Mail className="w-4 h-4 inline mr-2" />
-                Email Address
+                {selectedRole === 'rep' ? 'Rep Name' : 'Email Address'}
               </label>
               <input
-                type="email"
+                type={selectedRole === 'rep' ? 'text' : 'email'}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all"
-                placeholder="your.email@example.com"
+                placeholder={selectedRole === 'rep' ? 'Select a rep name above' : selectedRole === 'manager' ? 'manager@example.com' : 'admin@example.com'}
                 required
               />
+              {selectedRole === 'rep' && email && (
+                <p className="text-xs text-gray-400 mt-1">
+                  <KeyRound className="w-3 h-3 inline mr-1" />
+                  Password: demo123
+                </p>
+              )}
+              {selectedRole === 'manager' && (
+                <p className="text-xs text-gray-400 mt-1">
+                  <KeyRound className="w-3 h-3 inline mr-1" />
+                  Use: <span className="font-mono">manager@example.com</span> with password <span className="font-mono">demo123</span>
+                </p>
+              )}
+              {selectedRole === 'admin' && (
+                <p className="text-xs text-gray-400 mt-1">
+                  <KeyRound className="w-3 h-3 inline mr-1" />
+                  Use: <span className="font-mono">admin@example.com</span> with password <span className="font-mono">demo123</span>
+                </p>
+              )}
             </div>
 
             {/* Password Input */}
@@ -146,7 +218,9 @@ export function DemoLoginPage() {
               className={`w-full font-semibold py-4 rounded-lg transition-all shadow-lg ${
                 selectedRole === 'rep'
                   ? 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white shadow-blue-500/30'
-                  : 'bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-700 hover:to-cyan-600 text-white shadow-cyan-500/30'
+                  : selectedRole === 'manager'
+                  ? 'bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-700 hover:to-cyan-600 text-white shadow-cyan-500/30'
+                  : 'bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white shadow-purple-500/30'
               }`}
             >
               {loading ? (
@@ -157,7 +231,7 @@ export function DemoLoginPage() {
               ) : (
                 <div className="flex items-center justify-center gap-2">
                   <Lock className="w-5 h-5" />
-                  <span>Sign In as {selectedRole === 'rep' ? 'Sales Rep' : 'Manager'}</span>
+                  <span>Sign In as {selectedRole === 'rep' ? 'Sales Rep' : selectedRole === 'manager' ? 'Manager' : 'Admin'}</span>
                 </div>
               )}
             </Button>

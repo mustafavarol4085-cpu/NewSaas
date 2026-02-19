@@ -1,16 +1,19 @@
 import { useState, useEffect, useRef } from "react";
 import { RepPerformanceDashboard } from "./components/multiplicity/RepPerformanceDashboard";
 import { ManagerPerformanceDashboard } from "./components/multiplicity/ManagerPerformanceDashboard";
+import { AdminManagerDashboard } from "./components/multiplicity/AdminManagerDashboard";
+import { AdminConfigurationDashboard } from "./components/multiplicity/AdminConfigurationDashboard";
 import { AuthProvider, useAuth } from "./components/auth/AuthProvider";
 import { DemoLoginPage } from "./components/auth/DemoLoginPage";
 import { Button } from "./components/ui/button";
-import { Users, User, Sparkles, LogOut, ChevronDown } from "lucide-react";
+import { Users, User, Sparkles, LogOut, ChevronDown, Settings } from "lucide-react";
 
 function AppContent() {
   const { user, loading, signOut } = useAuth();
   const userRole = user?.user_metadata?.role || 'rep';
+  const isAdmin = userRole === 'admin';
   const isManager = userRole === 'manager';
-  const [view, setView] = useState<"rep" | "manager">(isManager ? "manager" : "rep");
+  const [view, setView] = useState<"rep" | "manager" | "admin-config">(isAdmin ? "rep" : "manager");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -26,12 +29,17 @@ function AppContent() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Force rep users to stay on rep view
+  // View guard based on role
   useEffect(() => {
-    if (!isManager && view === 'manager') {
+    if (isManager && view !== 'manager') {
+      setView('manager');
+      return;
+    }
+
+    if (!isAdmin && !isManager && (view === 'manager' || view === 'admin-config')) {
       setView('rep');
     }
-  }, [isManager, view]);
+  }, [isAdmin, isManager, view]);
 
   if (loading) {
     return (
@@ -70,8 +78,8 @@ function AppContent() {
               </div>
             </div>
             
-            {/* View Toggle - Only show for managers */}
-            {isManager ? (
+            {/* View Toggle - Admin only */}
+            {isAdmin ? (
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -80,19 +88,24 @@ function AppContent() {
                   {view === "manager" ? (
                     <>
                       <Users className="w-4 h-4" />
-                      <span className="text-sm font-medium">Manager View</span>
+                      <span className="text-sm font-medium">Manager Schedules</span>
+                    </>
+                  ) : view === "admin-config" ? (
+                    <>
+                      <Settings className="w-4 h-4" />
+                      <span className="text-sm font-medium">Admin Configuration</span>
                     </>
                   ) : (
                     <>
                       <User className="w-4 h-4" />
-                      <span className="text-sm font-medium">Rep View</span>
+                      <span className="text-sm font-medium">Rep Activity View</span>
                     </>
                   )}
                   <ChevronDown className={`w-4 h-4 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
                 
                 {dropdownOpen && (
-                  <div className="absolute top-full left-0 mt-2 w-48 bg-[#1a1a24] border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
+                  <div className="absolute top-full left-0 mt-2 w-56 bg-[#1a1a24] border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
                     <button
                       onClick={() => {
                         setView("rep");
@@ -103,7 +116,7 @@ function AppContent() {
                       }`}
                     >
                       <User className="w-4 h-4" />
-                      <span className="text-sm font-medium">Rep View</span>
+                      <span className="text-sm font-medium">Rep Activity View</span>
                     </button>
                     <button
                       onClick={() => {
@@ -115,10 +128,27 @@ function AppContent() {
                       }`}
                     >
                       <Users className="w-4 h-4" />
-                      <span className="text-sm font-medium">Manager View</span>
+                      <span className="text-sm font-medium">Manager Schedules</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setView("admin-config");
+                        setDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
+                        view === "admin-config" ? "bg-blue-600/20 text-blue-400" : "text-gray-300 hover:bg-gray-800"
+                      }`}
+                    >
+                      <Settings className="w-4 h-4" />
+                      <span className="text-sm font-medium">Admin Configuration</span>
                     </button>
                   </div>
                 )}
+              </div>
+            ) : isManager ? (
+              <div className="flex items-center gap-2 px-4 py-2 bg-cyan-600/20 text-cyan-300 rounded-lg border border-cyan-500/30">
+                <Users className="w-4 h-4" />
+                <span className="text-sm font-medium">Manager View</span>
               </div>
             ) : (
               <div className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 text-blue-400 rounded-lg border border-blue-500/30">
@@ -144,7 +174,13 @@ function AppContent() {
       </div>
 
       {/* Render dashboard based on selected view */}
-      {view === 'manager' ? <ManagerPerformanceDashboard /> : <RepPerformanceDashboard />}
+      {isAdmin ? (
+        view === 'manager' ? <AdminManagerDashboard /> : view === 'admin-config' ? <AdminConfigurationDashboard /> : <ManagerPerformanceDashboard />
+      ) : isManager ? (
+        <ManagerPerformanceDashboard />
+      ) : (
+        <RepPerformanceDashboard />
+      )}
     </div>
   );
 }

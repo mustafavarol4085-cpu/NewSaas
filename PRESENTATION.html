@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplicity Agent - Clear Presentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+            overflow: hidden;
+        }
+
+        .presentation {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide {
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            padding: 60px;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+            color: white;
+            position: absolute;
+            top: 0;
+            left: 0;
+            overflow-y: auto;
+            z-index: 1;
+        }
+
+        .slide.active {
+            display: flex;
+            z-index: 10;
+        }
+
+        .slide.cover {
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+            display: flex !important;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            overflow: visible;
+        }
+
+        .slide.cover h1 {
+            font-size: 4.5rem;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 900;
+            letter-spacing: -2px;
+        }
+
+        .slide.cover h2 {
+            font-size: 1.8rem;
+            font-weight: 300;
+            color: #94a3b8;
+            margin-bottom: 40px;
+        }
+
+        .slide.cover .subtitle {
+            font-size: 1.1rem;
+            color: #cbd5e1;
+            margin-top: 60px;
+            max-width: 600px;
+        }
+
+        .logo-section {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 3rem;
+        }
+
+        .slide h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            color: #0ea5e9;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .slide h2 {
+            font-size: 1.4rem;
+            color: #94a3b8;
+            margin-bottom: 30px;
+            font-weight: 400;
+        }
+
+        .slide h3 {
+            font-size: 1.2rem;
+            color: #0ea5e9;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 20px;
+        }
+
+        .feature-box {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(14, 165, 233, 0.3);
+            padding: 25px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .feature-box h3 {
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .feature-box ul {
+            list-style: none;
+            margin-top: 15px;
+        }
+
+        .feature-box li {
+            padding: 10px 0;
+            color: #cbd5e1;
+            border-bottom: 1px solid rgba(14, 165, 233, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .feature-box li:last-child {
+            border-bottom: none;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: auto;
+        }
+
+        .status-complete {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.5);
+        }
+
+        .status-partial {
+            background: rgba(250, 204, 21, 0.2);
+            color: #facc15;
+            border: 1px solid rgba(250, 204, 21, 0.5);
+        }
+
+        .status-missing {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.5);
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .stat-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(14, 165, 233, 0.3);
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-card .number {
+            font-size: 3rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .label {
+            color: #94a3b8;
+            font-size: 0.95rem;
+        }
+
+        .roadmap-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.95rem;
+        }
+
+        .roadmap-table th {
+            background: rgba(14, 165, 233, 0.1);
+            border: 1px solid rgba(14, 165, 233, 0.3);
+            padding: 15px;
+            text-align: left;
+            color: #0ea5e9;
+            font-weight: 600;
+        }
+
+        .roadmap-table td {
+            border: 1px solid rgba(14, 165, 233, 0.2);
+            padding: 15px;
+            color: #cbd5e1;
+        }
+
+        .roadmap-table tr:hover {
+            background: rgba(14, 165, 233, 0.05);
+        }
+
+        .priority-high {
+            color: #ef4444;
+            font-weight: 600;
+        }
+
+        .priority-medium {
+            color: #facc15;
+            font-weight: 600;
+        }
+
+        .mermaid {
+            background: rgba(15, 23, 42, 0.8);
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid rgba(14, 165, 233, 0.3);
+            margin: 30px 0;
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .mermaid svg {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        button {
+            background: rgba(14, 165, 233, 0.2);
+            border: 1px solid rgba(14, 165, 233, 0.5);
+            color: #0ea5e9;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 1rem;
+        }
+
+        button:hover {
+            background: rgba(14, 165, 233, 0.4);
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .slide-counter {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            color: #94a3b8;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .success {
+            color: #4ade80;
+        }
+
+        .warning {
+            color: #facc15;
+        }
+
+        .error {
+            color: #ef4444;
+        }
+
+        .progress-bar {
+            background: rgba(51, 65, 85, 0.5);
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-bar-fill {
+            background: linear-gradient(90deg, #0ea5e9 0%, #06b6d4 100%);
+            height: 100%;
+            border-radius: 4px;
+        }
+
+        .emoji {
+            font-size: 1.2em;
+            margin-right: 8px;
+        }
+
+        .project-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-ready {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.5);
+        }
+
+        .badge-progress {
+            background: rgba(250, 204, 21, 0.2);
+            color: #facc15;
+            border: 1px solid rgba(250, 204, 21, 0.5);
+        }
+
+        .badge-missing {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.5);
+        }
+
+        .flow {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 14px;
+            align-items: center;
+        }
+
+        .flow-step {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(14, 165, 233, 0.3);
+            padding: 16px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 0.95rem;
+            color: #cbd5e1;
+        }
+
+        .flow-arrow {
+            text-align: center;
+            color: #0ea5e9;
+            font-size: 1.4rem;
+        }
+
+        .mini-note {
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+
+        @media print {
+            .controls, .slide-counter { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation">
+        <div class="slide active cover">
+            <div class="logo-section">🚀</div>
+            <h1>Multiplicity Agent</h1>
+            <h2>AI-Powered Sales Call Coaching System</h2>
+            <p class="subtitle">Real-Time Analysis • AI Coaching • Intelligent Automation</p>
+            <p class="subtitle" style="margin-top: 100px; font-size: 0.9rem; color: #64748b;">
+                February 16, 2026
+            </p>
+        </div>
+
+        <div class="slide">
+            <h1><span class="emoji">📊</span>Project Status Overview</h1>
+            <h2>System 1: Call Analyzer (✅ Done) | System 2: Company GPT (🚧 In Progress)</h2>
+            
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="number">10</div>
+                    <div class="label">AI Agents<br/>Built</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">65%</div>
+                    <div class="label">Completion<br/>Rate</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">2</div>
+                    <div class="label">Core Systems<br/>Ready</div>
+                </div>
+            </div>
+
+            <div class="two-column" style="margin-top: 40px;">
+                <div class="feature-box">
+                    <h3><span class="emoji">✅</span>System 1: Sales Call Analyzer</h3>
+                    <p style="color: #94a3b8; margin-bottom: 10px;">Fully functional • Ready for clients</p>
+                    <ul>
+                        <li>10 AI agents analyzing calls</li>
+                        <li>Real-time scoring system</li>
+                        <li>Coaching feedback automation</li>
+                        <li>Rep & Manager dashboards</li>
+                    </ul>
+                </div>
+                <div class="feature-box">
+                    <h3><span class="emoji">🚧</span>System 2: Company GPT</h3>
+                    <p style="color: #94a3b8; margin-bottom: 10px;">80% built • Final touches needed</p>
+                    <ul>
+                        <li><span class="success">✓</span> Chat interface working</li>
+                        <li><span class="error">✗</span> Playbook search</li>
+                        <li><span class="error">✗</span> Custom benchmarks</li>
+                        <li><span class="error">✗</span> Live call panel</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h1><span class="emoji">✅</span>System 1: What's Done</h1>
+            <h2>Sales Call Analyzer - Complete & Tested</h2>
+
+            <div class="two-column">
+                <div class="feature-box">
+                    <h3>📱 User Interfaces</h3>
+                    <ul>
+                        <li><strong>Rep Dashboard</strong> - Personal call history & scores</li>
+                        <li><strong>Manager Dashboard</strong> - Team analytics & insights</li>
+                        <li><strong>Call Details</strong> - Audio, transcript, analysis</li>
+                    </ul>
+                </div>
+                <div class="feature-box">
+                    <h3>🤖 10 AI Agents</h3>
+                    <ul>
+                        <li><strong>1-5:</strong> Objections, discovery, closing</li>
+                        <li><strong>6-8:</strong> Skills, benchmarking, win probability</li>
+                        <li><strong>9-10:</strong> Coaching, master coach narratives</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="two-column" style="margin-top: 20px;">
+                <div class="feature-box">
+                    <h3>📊 What It Scores</h3>
+                    <ul>
+                        <li>Objection handling quality</li>
+                        <li>Discovery questions asked</li>
+                        <li>Closing techniques used</li>
+                        <li>Talk ratio (rep vs customer)</li>
+                    </ul>
+                </div>
+                <div class="feature-box">
+                    <h3>📧 Automation (n8n)</h3>
+                    <ul>
+                        <li>Automatic email coaching</li>
+                        <li>Scheduled report delivery</li>
+                        <li>Real-time scoring triggers</li>
+                        <li>Workflow orchestration</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h1><span class="emoji">🧠</span>How the AI Works: Call Processing Flow</h1>
+            <h2>6-step automated pipeline from audio to coaching</h2>
+
+            <svg style="width: 100%; height: 300px; margin: 20px 0;" viewBox="0 0 1200 300" preserveAspectRatio="xMidYMid meet">
+                <!-- Input -->
+                <rect x="20" y="100" width="120" height="100" fill="rgba(14, 165, 233, 0.2)" stroke="#0ea5e9" stroke-width="2" rx="8"/>
+                <text x="80" y="125" text-anchor="middle" fill="#0ea5e9" font-size="14" font-weight="bold">📁 INPUT</text>
+                <text x="80" y="145" text-anchor="middle" fill="#cbd5e1" font-size="12">Audio</text>
+                <text x="80" y="160" text-anchor="middle" fill="#cbd5e1" font-size="12">+Transcript</text>
+                <text x="80" y="175" text-anchor="middle" fill="#cbd5e1" font-size="12">+Metadata</text>
+
+                <!-- Step 1 -->
+                <line x1="140" y1="150" x2="180" y2="150" stroke="#0ea5e9" stroke-width="2" marker-end="url(#arrowhead)"/>
+                <rect x="180" y="100" width="100" height="100" fill="rgba(34, 197, 94, 0.1)" stroke="#4ade80" stroke-width="2" rx="8"/>
+                <text x="230" y="125" text-anchor="middle" fill="#4ade80" font-size="13" font-weight="bold">1️⃣ Normalize</text>
+                <text x="230" y="145" text-anchor="middle" fill="#cbd5e1" font-size="11">Clean text</text>
+                <text x="230" y="160" text-anchor="middle" fill="#cbd5e1" font-size="11">timestamps</text>
+
+                <!-- Step 2 -->
+                <line x1="280" y1="150" x2="320" y2="150" stroke="#0ea5e9" stroke-width="2" marker-end="url(#arrowhead)"/>
+                <rect x="320" y="80" width="100" height="140" fill="rgba(168, 85, 247, 0.1)" stroke="#a855f7" stroke-width="2" rx="8"/>
+                <text x="370" y="100" text-anchor="middle" fill="#a855f7" font-size="13" font-weight="bold">2️⃣ 10 Agents</text>
+                <text x="370" y="120" text-anchor="middle" fill="#cbd5e1" font-size="11">Objections</text>
+                <text x="370" y="135" text-anchor="middle" fill="#cbd5e1" font-size="11">Discovery</text>
+                <text x="370" y="150" text-anchor="middle" fill="#cbd5e1" font-size="11">Skills/Closing</text>
+                <text x="370" y="165" text-anchor="middle" fill="#cbd5e1" font-size="11">in Parallel</text>
+
+                <!-- Step 3 -->
+                <line x1="420" y1="150" x2="460" y2="150" stroke="#0ea5e9" stroke-width="2" marker-end="url(#arrowhead)"/>
+                <rect x="460" y="100" width="100" height="100" fill="rgba(59, 130, 246, 0.1)" stroke="#3b82f6" stroke-width="2" rx="8"/>
+                <text x="510" y="125" text-anchor="middle" fill="#3b82f6" font-size="13" font-weight="bold">3️⃣ Aggregate</text>
+                <text x="510" y="145" text-anchor="middle" fill="#cbd5e1" font-size="11">Combine scores</text>
+                <text x="510" y="160" text-anchor="middle" fill="#cbd5e1" font-size="11">Key moments</text>
+
+                <!-- Step 4 -->
+                <line x1="560" y1="150" x2="600" y2="150" stroke="#0ea5e9" stroke-width="2" marker-end="url(#arrowhead)"/>
+                <rect x="600" y="100" width="100" height="100" fill="rgba(246, 184, 45, 0.1)" stroke="#f6b82d" stroke-width="2" rx="8"/>
+                <text x="650" y="125" text-anchor="middle" fill="#facc15" font-size="13" font-weight="bold">4️⃣ Compare</text>
+                <text x="650" y="145" text-anchor="middle" fill="#cbd5e1" font-size="11">Golden baseline</text>
+                <text x="650" y="160" text-anchor="middle" fill="#cbd5e1" font-size="11">vs This call</text>
+
+                <!-- Step 5 -->
+                <line x1="700" y1="150" x2="740" y2="150" stroke="#0ea5e9" stroke-width="2" marker-end="url(#arrowhead)"/>
+                <rect x="740" y="100" width="100" height="100" fill="rgba(236, 72, 153, 0.1)" stroke="#ec4899" stroke-width="2" rx="8"/>
+                <text x="790" y="125" text-anchor="middle" fill="#ec4899" font-size="13" font-weight="bold">5️⃣ Compose</text>
+                <text x="790" y="145" text-anchor="middle" fill="#cbd5e1" font-size="11">Coaching text</text>
+                <text x="790" y="160" text-anchor="middle" fill="#cbd5e1" font-size="11">narrative</text>
+
+                <!-- Step 6 -->
+                <line x1="840" y1="150" x2="880" y2="150" stroke="#0ea5e9" stroke-width="2" marker-end="url(#arrowhead)"/>
+                <rect x="880" y="100" width="100" height="100" fill="rgba(239, 68, 68, 0.1)" stroke="#ef4444" stroke-width="2" rx="8"/>
+                <text x="930" y="125" text-anchor="middle" fill="#ef4444" font-size="13" font-weight="bold">6️⃣ Deliver</text>
+                <text x="930" y="145" text-anchor="middle" fill="#cbd5e1" font-size="11">Store DB</text>
+                <text x="930" y="160" text-anchor="middle" fill="#cbd5e1" font-size="11">Send email</text>
+
+                <!-- Output -->
+                <line x1="980" y1="150" x2="1020" y2="150" stroke="#0ea5e9" stroke-width="2" marker-end="url(#arrowhead)"/>
+                <rect x="1020" y="100" width="120" height="100" fill="rgba(14, 165, 233, 0.2)" stroke="#0ea5e9" stroke-width="2" rx="8"/>
+                <text x="1080" y="120" text-anchor="middle" fill="#0ea5e9" font-size="13" font-weight="bold">📊 OUTPUT</text>
+                <text x="1080" y="140" text-anchor="middle" fill="#cbd5e1" font-size="11">Score • Insights</text>
+                <text x="1080" y="155" text-anchor="middle" fill="#cbd5e1" font-size="11">Coaching • Tips</text>
+
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#0ea5e9" />
+                    </marker>
+                </defs>
+            </svg>
+
+            <div class="stat-grid" style="margin-top: 20px;">
+                <div class="stat-card">
+                    <div class="number">0-100</div>
+                    <div class="label">Call score</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">3-5</div>
+                    <div class="label">Key moments</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">2-3</div>
+                    <div class="label">Action items</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h1><span class="emoji">🤖</span>10 AI Agents Breakdown</h1>
+            <h2>Specialized agents analyzing different dimensions</h2>
+
+            <svg style="width: 100%; height: 320px; margin: 20px 0;" viewBox="0 0 1200 320" preserveAspectRatio="xMidYMid meet">
+                <!-- Call Analysis Agents (1-5) -->
+                <text x="150" y="25" font-size="16" font-weight="bold" fill="#4ade80">CALL ANALYSIS (Agents 1-5)</text>
+                
+                <rect x="20" y="50" width="110" height="120" fill="rgba(34, 197, 94, 0.15)" stroke="#4ade80" stroke-width="2" rx="6"/>
+                <text x="75" y="75" text-anchor="middle" font-size="20" font-weight="bold">Agent 1</text>
+                <text x="75" y="98" text-anchor="middle" font-size="12" fill="#cbd5e1">Objection</text>
+                <text x="75" y="115" text-anchor="middle" font-size="12" fill="#cbd5e1">Handling</text>
+                <text x="75" y="130" text-anchor="middle" font-size="11" fill="#94a3b8">Rate quality</text>
+                <text x="75" y="145" text-anchor="middle" font-size="11" fill="#94a3b8">of responses</text>
+
+                <rect x="150" y="50" width="110" height="120" fill="rgba(34, 197, 94, 0.15)" stroke="#4ade80" stroke-width="2" rx="6"/>
+                <text x="205" y="75" text-anchor="middle" font-size="20" font-weight="bold">Agent 2</text>
+                <text x="205" y="98" text-anchor="middle" font-size="12" fill="#cbd5e1">Discovery</text>
+                <text x="205" y="115" text-anchor="middle" font-size="12" fill="#cbd5e1">Questions</text>
+                <text x="205" y="130" text-anchor="middle" font-size="11" fill="#94a3b8">Count and</text>
+                <text x="205" y="145" text-anchor="middle" font-size="11" fill="#94a3b8">quality</text>
+
+                <rect x="280" y="50" width="110" height="120" fill="rgba(34, 197, 94, 0.15)" stroke="#4ade80" stroke-width="2" rx="6"/>
+                <text x="335" y="75" text-anchor="middle" font-size="20" font-weight="bold">Agent 3</text>
+                <text x="335" y="98" text-anchor="middle" font-size="12" fill="#cbd5e1">Closing</text>
+                <text x="335" y="115" text-anchor="middle" font-size="12" fill="#cbd5e1">Technique</text>
+                <text x="335" y="130" text-anchor="middle" font-size="11" fill="#94a3b8">Detect and</text>
+                <text x="335" y="145" text-anchor="middle" font-size="11" fill="#94a3b8">score</text>
+
+                <rect x="410" y="50" width="110" height="120" fill="rgba(34, 197, 94, 0.15)" stroke="#4ade80" stroke-width="2" rx="6"/>
+                <text x="465" y="75" text-anchor="middle" font-size="20" font-weight="bold">Agent 4</text>
+                <text x="465" y="98" text-anchor="middle" font-size="12" fill="#cbd5e1">Value</text>
+                <text x="465" y="115" text-anchor="middle" font-size="12" fill="#cbd5e1">Proposition</text>
+                <text x="465" y="130" text-anchor="middle" font-size="11" fill="#94a3b8">Clarity of</text>
+                <text x="465" y="145" text-anchor="middle" font-size="11" fill="#94a3b8">messaging</text>
+
+                <rect x="540" y="50" width="110" height="120" fill="rgba(34, 197, 94, 0.15)" stroke="#4ade80" stroke-width="2" rx="6"/>
+                <text x="595" y="75" text-anchor="middle" font-size="20" font-weight="bold">Agent 5</text>
+                <text x="595" y="98" text-anchor="middle" font-size="12" fill="#cbd5e1">Talk Ratio</text>
+                <text x="595" y="115" text-anchor="middle" font-size="12" fill="#cbd5e1">Analysis</text>
+                <text x="595" y="130" text-anchor="middle" font-size="11" fill="#94a3b8">Rep vs customer</text>
+                <text x="595" y="145" text-anchor="middle" font-size="11" fill="#94a3b8">speaking time</text>
+
+                <!-- Performance Agents (6-8) -->
+                <text x="800" y="25" font-size="16" font-weight="bold" fill="#3b82f6">PERFORMANCE (Agents 6-8)</text>
+                
+                <rect x="670" y="50" width="110" height="120" fill="rgba(59, 130, 246, 0.15)" stroke="#3b82f6" stroke-width="2" rx="6"/>
+                <text x="725" y="75" text-anchor="middle" font-size="20" font-weight="bold">Agent 6</text>
+                <text x="725" y="98" text-anchor="middle" font-size="12" fill="#cbd5e1">Call Skills</text>
+                <text x="725" y="115" text-anchor="middle" font-size="12" fill="#cbd5e1">Benchmark</text>
+                <text x="725" y="130" text-anchor="middle" font-size="11" fill="#94a3b8">Compare to</text>
+                <text x="725" y="145" text-anchor="middle" font-size="11" fill="#94a3b8">best reps</text>
+
+                <rect x="800" y="50" width="110" height="120" fill="rgba(59, 130, 246, 0.15)" stroke="#3b82f6" stroke-width="2" rx="6"/>
+                <text x="855" y="75" text-anchor="middle" font-size="20" font-weight="bold">Agent 7</text>
+                <text x="855" y="98" text-anchor="middle" font-size="12" fill="#cbd5e1">Win</text>
+                <text x="855" y="115" text-anchor="middle" font-size="12" fill="#cbd5e1">Probability</text>
+                <text x="855" y="130" text-anchor="middle" font-size="11" fill="#94a3b8">Predict deal</text>
+                <text x="855" y="145" text-anchor="middle" font-size="11" fill="#94a3b8">outcome</text>
+
+                <rect x="930" y="50" width="110" height="120" fill="rgba(59, 130, 246, 0.15)" stroke="#3b82f6" stroke-width="2" rx="6"/>
+                <text x="985" y="75" text-anchor="middle" font-size="20" font-weight="bold">Agent 8</text>
+                <text x="985" y="98" text-anchor="middle" font-size="12" fill="#cbd5e1">Rep Rating</text>
+                <text x="985" y="115" text-anchor="middle" font-size="12" fill="#cbd5e1">Score</text>
+                <text x="985" y="130" text-anchor="middle" font-size="11" fill="#94a3b8">Overall</text>
+                <text x="985" y="145" text-anchor="middle" font-size="11" fill="#94a3b8">performance</text>
+
+                <!-- Coaching Agents (9-10) -->
+                <text x="1090" y="25" font-size="16" font-weight="bold" fill="#f6b82d">COACHING (Agents 9-10)</text>
+                
+                <rect x="1060" y="50" width="110" height="120" fill="rgba(246, 184, 45, 0.15)" stroke="#f6b82d" stroke-width="2" rx="6"/>
+                <text x="1115" y="75" text-anchor="middle" font-size="20" font-weight="bold">Agent 9</text>
+                <text x="1115" y="98" text-anchor="middle" font-size="12" fill="#cbd5e1">Action Items</text>
+                <text x="1115" y="115" text-anchor="middle" font-size="12"></text>
+                <text x="1115" y="130" text-anchor="middle" font-size="11" fill="#94a3b8">Create specific</text>
+                <text x="1115" y="145" text-anchor="middle" font-size="11" fill="#94a3b8">improvements</text>
+            </svg>
+        </div>
+
+        <div class="slide">
+            <h1><span class="emoji">🚧</span>System 2: What's Missing</h1>
+            <h2>Company GPT - 3 Critical Pieces</h2>
+
+            <div class="two-column">
+                <div class="feature-box">
+                    <h3><span class="success">✅ DONE</span></h3>
+                    <ul>
+                        <li>Chat interface (665 lines)</li>
+                        <li>Message history</li>
+                        <li>Context management</li>
+                        <li>OpenAI integration</li>
+                        <li>Role-based responses</li>
+                    </ul>
+                </div>
+                <div class="feature-box">
+                    <h3><span class="error">❌ MISSING</span></h3>
+                    <ul>
+                        <li>Playbook embedding & search</li>
+                        <li>Custom benchmark upload</li>
+                        <li>pgvector integration</li>
+                        <li>Live call panel</li>
+                        <li>Query classification</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="feature-box" style="margin-top: 20px;">
+                <h3>Example Today vs Complete:</h3>
+                <p style="margin: 8px 0;"><strong>Today:</strong> "How did I score?" → "You scored 75 on discovery" ✓</p>
+                <p style="margin: 8px 0;"><strong>Complete:</strong> "How did I score?" → "You scored 75 on discovery. Per your playbook, ask 2-3 discovery questions. You asked 1." ✓✓</p>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h1><span class="emoji">🗄️</span>Data Architecture & Storage</h1>
+            <h2>Supabase + pgvector + 10 AI Agents</h2>
+
+            <svg style="width: 100%; height="340px; margin: 20px 0;" viewBox="0 0 1200 340" preserveAspectRatio="xMidYMid meet">
+                <!-- Call Input -->
+                <rect x="20" y="20" width="100" height="80" fill="rgba(14, 165, 233, 0.2)" stroke="#0ea5e9" stroke-width="2" rx="6"/>
+                <text x="70" y="45" text-anchor="middle" fill="#0ea5e9" font-size="13" font-weight="bold">📞 CALLS</text>
+                <text x="70" y="65" text-anchor="middle" fill="#cbd5e1" font-size="11">Audio files</text>
+                <text x="70" y="79" text-anchor="middle" fill="#cbd5e1" font-size="11">metadata</text>
+
+                <line x1="120" y1="60" x2="160" y2="60" stroke="#0ea5e9" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+                <!-- Transcripts -->
+                <g>
+                    <rect x="160" y="20" width="100" height="80" fill="rgba(168, 85, 247, 0.15)" stroke="#a855f7" stroke-width="2" rx="6"/>
+                    <text x="210" y="45" text-anchor="middle" fill="#a855f7" font-size="13" font-weight="bold">📝 TRANSCRIPTS</text>
+                    <text x="210" y="65" text-anchor="middle" fill="#cbd5e1" font-size="11">Text + timing</text>
+                    <text x="210" y="79" text-anchor="middle" fill="#cbd5e1" font-size="11">speaker turn</text>
+                </g>
+
+                <line x1="260" y1="60" x2="300" y2="60" stroke="#0ea5e9" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+                <!-- Agent Analysis -->
+                <g>
+                    <rect x="300" y="20" width="100" height="80" fill="rgba(34, 197, 94, 0.15)" stroke="#4ade80" stroke-width="2" rx="6"/>
+                    <text x="350" y="40" text-anchor="middle" fill="#4ade80" font-size="13" font-weight="bold">🤖 AGENT</text>
+                    <text x="350" y="55" text-anchor="middle" fill="#4ade80" font-size="13" font-weight="bold">ANALYSIS</text>
+                    <text x="350" y="75" text-anchor="middle" fill="#cbd5e1" font-size="11">10 agent scores</text>
+                </g>
+
+                <line x1="400" y1="60" x2="440" y2="60" stroke="#0ea5e9" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+                <!-- Analysis Table -->
+                <g>
+                    <rect x="440" y="20" width="100" height="80" fill="rgba(59, 130, 246, 0.15)" stroke="#3b82f6" stroke-width="2" rx="6"/>
+                    <text x="490" y="45" text-anchor="middle" fill="#3b82f6" font-size="13" font-weight="bold">📊 ANALYSIS</text>
+                    <text x="490" y="65" text-anchor="middle" fill="#cbd5e1" font-size="11">Combined</text>
+                    <text x="490" y="79" text-anchor="middle" fill="#cbd5e1" font-size="11">final score</text>
+                </g>
+
+                <line x1="540" y1="60" x2="580" y2="60" stroke="#0ea5e9" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+                <!-- AI Insights -->
+                <g>
+                    <rect x="580" y="20" width="100" height="80" fill="rgba(236, 72, 153, 0.15)" stroke="#ec4899" stroke-width="2" rx="6"/>
+                    <text x="630" y="40" text-anchor="middle" fill="#ec4899" font-size="13" font-weight="bold">💡 AI</text>
+                    <text x="630" y="55" text-anchor="middle" fill="#ec4899" font-size="13" font-weight="bold">INSIGHTS</text>
+                    <text x="630" y="75" text-anchor="middle" fill="#cbd5e1" font-size="11">Key moments</text>
+                </g>
+
+                <!-- Golden Calls Comparison -->
+                <line x1="350" y1="100" x2="350" y2="140" stroke="#facc15" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead2)"/>
+                
+                <g>
+                    <rect x="300" y="140" width="100" height="80" fill="rgba(246, 184, 45, 0.15)" stroke="#f6b82d" stroke-width="2" rx="6"/>
+                    <text x="350" y="160" text-anchor="middle" fill="#f6b82d" font-size="13" font-weight="bold">🏆 GOLDEN</text>
+                    <text x="350" y="175" text-anchor="middle" fill="#f6b82d" font-size="13" font-weight="bold">CALLS</text>
+                    <text x="350" y="195" text-anchor="middle" fill="#cbd5e1" font-size="11">Top 5% calls</text>
+                    <text x="350" y="209" text-anchor="middle" fill="#cbd5e1" font-size="11">baseline</text>
+                </g>
+
+                <!-- Playbooks / Knowledge Base -->
+                <line x1="630" y1="100" x2="630" y2="140" stroke="#0ea5e9" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead2)"/>
+                
+                <g>
+                    <rect x="580" y="140" width="100" height="80" fill="rgba(14, 165, 233, 0.2)" stroke="#0ea5e9" stroke-width="2" rx="6"/>
+                    <text x="630" y="160" text-anchor="middle" fill="#0ea5e9" font-size="13" font-weight="bold">📚 KB</text>
+                    <text x="630" y="175" text-anchor="middle" fill="#0ea5e9" font-size="13" font-weight="bold">DOCUMENTS</text>
+                    <text x="630" y="195" text-anchor="middle" fill="#cbd5e1" font-size="11">Client playbooks</text>
+                    <text x="630" y="209" text-anchor="middle" fill="#cbd5e1" font-size="11">indexed</text>
+                </g>
+
+                <!-- Vector Search -->
+                <g>
+                    <rect x="720" y="140" width="100" height="80" fill="rgba(168, 85, 247, 0.15)" stroke="#a855f7" stroke-width="2" rx="6"/>
+                    <text x="770" y="160" text-anchor="middle" fill="#a855f7" font-size="13" font-weight="bold">🔍 pgVECTOR</text>
+                    <text x="770" y="175" text-anchor="middle" fill="#a855f7" font-size="13" font-weight="bold">SEARCH</text>
+                    <text x="770" y="195" text-anchor="middle" fill="#cbd5e1" font-size="11">Semantic</text>
+                    <text x="770" y="209" text-anchor="middle" fill="#cbd5e1" font-size="11">search</text>
+                </g>
+
+                <line x1="680" y1="180" x2="720" y2="180" stroke="#0ea5e9" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+                <!-- Output to Coaching -->
+                <line x1="820" y1="180" x2="860" y2="180" stroke="#0ea5e9" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+                <g>
+                    <rect x="860" y="140" width="100" height="80" fill="rgba(34, 197, 94, 0.15)" stroke="#4ade80" stroke-width="2" rx="6"/>
+                    <text x="910" y="160" text-anchor="middle" fill="#4ade80" font-size="13" font-weight="bold">💬 COACHING</text>
+                    <text x="910" y="175" text-anchor="middle" fill="#4ade80" font-size="13" font-weight="bold">TEXT</text>
+                    <text x="910" y="195" text-anchor="middle" fill="#cbd5e1" font-size="11">Rich context</text>
+                    <text x="910" y="209" text-anchor="middle" fill="#cbd5e1" font-size="11">replies</text>
+                </g>
+
+                <!-- Output to Delivery -->
+                <line x1="910" y1="220" x2="910" y2="260" stroke="#0ea5e9" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+                <g>
+                    <rect x="820" y="260" width="180" height="60" fill="rgba(14, 165, 233, 0.2)" stroke="#0ea5e9" stroke-width="2" rx="6"/>
+                    <text x="910" y="280" text-anchor="middle" fill="#0ea5e9" font-size="13" font-weight="bold">📧 n8n WORKFLOWS</text>
+                    <text x="910" y="298" text-anchor="middle" fill="#cbd5e1" font-size="11">Email delivery • Dashboards • Reports</text>
+                </g>
+
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#0ea5e9" />
+                    </marker>
+                    <marker id="arrowhead2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#facc15" />
+                    </marker>
+                </defs>
+            </svg>
+        </div>
+
+        <div class="slide">
+            <h1><span class="emoji">📚</span>Playbook Search Pipeline (Coming)</h1>
+            <h2>How clients upload docs and AI uses them for coaching</h2>
+
+            <svg style="width: 100%; height: 280px; margin: 20px 0;" viewBox="0 0 1200 280" preserveAspectRatio="xMidYMid meet">
+                <!-- Upload -->
+                <rect x="20" y="80" width="90" height="100" fill="rgba(236, 72, 153, 0.15)" stroke="#ec4899" stroke-width="2" rx="6"/>
+                <text x="65" y="105" text-anchor="middle" fill="#ec4899" font-size="13" font-weight="bold">1️⃣ CLIENT</text>
+                <text x="65" y="122" text-anchor="middle" fill="#ec4899" font-size="13" font-weight="bold">UPLOADS</text>
+                <text x="65" y="142" text-anchor="middle" fill="#cbd5e1" font-size="11">PDF, DOCX</text>
+                <text x="65" y="156" text-anchor="middle" fill="#cbd5e1" font-size="11">playbooks</text>
+
+                <line x1="110" y1="130" x2="150" y2="130" stroke="#ef4444" stroke-width="2" marker-end="url(#arrowhead3)"/>
+
+                <!-- Chunking -->
+                <rect x="150" y="80" width="90" height="100" fill="rgba(239, 68, 68, 0.15)" stroke="#ef4444" stroke-width="2" rx="6"/>
+                <text x="195" y="105" text-anchor="middle" fill="#ef4444" font-size="13" font-weight="bold">2️⃣ CHUNK</text>
+                <text x="195" y="122" text-anchor="middle" fill="#ef4444" font-size="13" font-weight="bold">INTO 512</text>
+                <text x="195" y="142" text-anchor="middle" fill="#cbd5e1" font-size="11">Split into</text>
+                <text x="195" y="156" text-anchor="middle" fill="#cbd5e1" font-size="11">chunks</text>
+
+                <line x1="240" y1="130" x2="280" y2="130" stroke="#ef4444" stroke-width="2" marker-end="url(#arrowhead3)"/>
+
+                <!-- Embedding -->
+                <rect x="280" y="80" width="90" height="100" fill="rgba(168, 85, 247, 0.15)" stroke="#a855f7" stroke-width="2" rx="6"/>
+                <text x="325" y="105" text-anchor="middle" fill="#a855f7" font-size="13" font-weight="bold">3️⃣ EMBED</text>
+                <text x="325" y="122" text-anchor="middle" fill="#a855f7" font-size="13" font-weight="bold">VECTORS</text>
+                <text x="325" y="142" text-anchor="middle" fill="#cbd5e1" font-size="11">OpenAI</text>
+                <text x="325" y="156" text-anchor="middle" fill="#cbd5e1" font-size="11">embeddings</text>
+
+                <line x1="370" y1="130" x2="410" y2="130" stroke="#a855f7" stroke-width="2" marker-end="url(#arrowhead4)"/>
+
+                <!-- Store -->
+                <rect x="410" y="80" width="90" height="100" fill="rgba(59, 130, 246, 0.15)" stroke="#3b82f6" stroke-width="2" rx="6"/>
+                <text x="455" y="105" text-anchor="middle" fill="#3b82f6" font-size="13" font-weight="bold">4️⃣ STORE</text>
+                <text x="455" y="122" text-anchor="middle" fill="#3b82f6" font-size="13" font-weight="bold">pgVECTOR</text>
+                <text x="455" y="142" text-anchor="middle" fill="#cbd5e1" font-size="11">Supabase</text>
+                <text x="455" y="156" text-anchor="middle" fill="#cbd5e1" font-size="11">vector DB</text>
+
+                <line x1="500" y1="130" x2="540" y2="130" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrowhead4)"/>
+
+                <!-- Query Time at top -->
+                <text x="600" y="30" font-size="14" font-weight="bold" fill="#4ade80">QUERY TIME (During Coaching)</text>
+
+                <!-- Search -->
+                <rect x="540" y="80" width="90" height="100" fill="rgba(34, 197, 94, 0.15)" stroke="#4ade80" stroke-width="2" rx="6"/>
+                <text x="585" y="105" text-anchor="middle" fill="#4ade80" font-size="13" font-weight="bold">5️⃣ USER</text>
+                <text x="585" y="122" text-anchor="middle" fill="#4ade80" font-size="13" font-weight="bold">QUESTION</text>
+                <text x="585" y="142" text-anchor="middle" fill="#cbd5e1" font-size="11">"How do I</text>
+                <text x="585" y="156" text-anchor="middle" fill="#cbd5e1" font-size="11">ask better?"</text>
+
+                <line x1="630" y1="130" x2="670" y2="130" stroke="#4ade80" stroke-width="2" marker-end="url(#arrowhead5)"/>
+
+                <!-- Vector Search -->
+                <rect x="670" y="80" width="90" height="100" fill="rgba(246, 184, 45, 0.15)" stroke="#f6b82d" stroke-width="2" rx="6"/>
+                <text x="715" y="105" text-anchor="middle" fill="#f6b82d" font-size="13" font-weight="bold">6️⃣ SEARCH</text>
+                <text x="715" y="122" text-anchor="middle" fill="#f6b82d" font-size="13" font-weight="bold">SIMILAR</text>
+                <text x="715" y="142" text-anchor="middle" fill="#cbd5e1" font-size="11">Find relevenant</text>
+                <text x="715" y="156" text-anchor="middle" fill="#cbd5e1" font-size="11">chunks</text>
+
+                <line x1="760" y1="130" x2="800" y2="130" stroke="#f6b82d" stroke-width="2" marker-end="url(#arrowhead6)"/>
+
+                <!-- Compose -->
+                <rect x="800" y="80" width="90" height="100" fill="rgba(14, 165, 233, 0.15)" stroke="#0ea5e9" stroke-width="2" rx="6"/>
+                <text x="845" y="105" text-anchor="middle" fill="#0ea5e9" font-size="13" font-weight="bold">7️⃣ INJECT</text>
+                <text x="845" y="122" text-anchor="middle" fill="#0ea5e9" font-size="13" font-weight="bold">INTO GPT</text>
+                <text x="845" y="142" text-anchor="middle" fill="#cbd5e1" font-size="11">Add context</text>
+                <text x="845" y="156" text-anchor="middle" fill="#cbd5e1" font-size="11">to prompt</text>
+
+                <line x1="890" y1="130" x2="930" y2="130" stroke="#0ea5e9" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+                <!-- Response -->
+                <rect x="930" y="80" width="120" height="100" fill="rgba(14, 165, 233, 0.2)" stroke="#0ea5e9" stroke-width="2" rx="6"/>
+                <text x="990" y="110" text-anchor="middle" fill="#0ea5e9" font-size="13" font-weight="bold">📖 RESPONSE</text>
+                <text x="990" y="130" text-anchor="middle" fill="#cbd5e1" font-size="11">"Per your</text>
+                <text x="990" y="145" text-anchor="middle" fill="#cbd5e1" font-size="11">playbook on</text>
+                <text x="990" y="160" text-anchor="middle" fill="#cbd5e1" font-size="11">discovery..."</text>
+                <text x="990" y="175" text-anchor="middle" fill="#cbd5e1" font-size="11">(fully</text>
+                <text x="990" y="189" text-anchor="middle" fill="#cbd5e1" font-size="11">personalized)</text>
+                <text x="990" y="204" text-anchor="middle" fill="#cbd5e1" font-size="11"></text>
+                <text x="990" y="219" text-anchor="middle" fill="#cbd5e1" font-size="11"></text>
+                <text x="990" y="234" text-anchor="middle" fill="#cbd5e1" font-size="11"></text>
+                <text x="990" y="249" text-anchor="middle" fill="#cbd5e1" font-size="11"></text>
+                <text x="990" y="264" text-anchor="middle" fill="#cbd5e1" font-size="11"></text>
+                <text x="990" y="279" text-anchor="middle" fill="#cbd5e1" font-size="11"></text>
+                <text x="990" y="294" text-anchor="middle" fill="#cbd5e1" font-size="11"></text>
+                <text x="990" y="309" text-anchor="middle" fill="#cbd5e1" font-size="11"></text>
+                <text x="990" y="324" text-anchor="middle" fill="#cbd5e1" font-size="11"></text>
+                </rect>
+
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#0ea5e9" />
+                    </marker>
+                    <marker id="arrowhead3" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#ef4444" />
+                    </marker>
+                    <marker id="arrowhead4" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#3b82f6" />
+                    </marker>
+                    <marker id="arrowhead5" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#4ade80" />
+                    </marker>
+                    <marker id="arrowhead6" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#f6b82d" />
+                    </marker>
+                </defs>
+            </svg>
+
+            <div class="feature-box" style="margin-top: 20px; background: rgba(168, 85, 247, 0.1); border-left: 4px solid #a855f7;">
+                <p style="margin: 0; font-size: 0.95rem;"><strong>Status:</strong> <span style="color: #facc15;">30% complete</span> - Needs pgvector integration and UI upload form</p>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h1><span class="emoji">🎯</span>System 1: Complete Call Analyzer Flow</h1>
+            <h2>End-to-end workflow - what works today</h2>
+
+            <svg style="width: 100%; height: 320px; margin: 20px 0;" viewBox="0 0 1200 320" preserveAspectRatio="xMidYMid meet">
+                <!-- Rep Records Call -->
+                <g>
+                    <circle cx="80" cy="100" r="40" fill="rgba(34, 197, 94, 0.2)" stroke="#4ade80" stroke-width="2"/>
+                    <text x="80" y="105" text-anchor="middle" fill="#4ade80" font-size="20">📞</text>
+                    <text x="80" y="155" text-anchor="middle" fill="#cbd5e1" font-size="13" font-weight="bold">Rep Records</text>
+                    <text x="80" y="173" text-anchor="middle" fill="#cbd5e1" font-size="11">Sales call</text>
+                </g>
+
+                <line x1="120" y1="100" x2="170" y2="100" stroke="#0ea5e9" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+                <!-- System Auto-Transcribes -->
+                <g>
+                    <circle cx="250" cy="100" r="40" fill="rgba(168, 85, 247, 0.2)" stroke="#a855f7" stroke-width="2"/>
+                    <text x="250" y="105" text-anchor="middle" fill="#a855f7" font-size="20">⚙️</text>
+                    <text x="250" y="155" text-anchor="middle" fill="#cbd5e1" font-size="13" font-weight="bold">Auto</text>
+                    <text x="250" y="173" text-anchor="middle" fill="#cbd5e1" font-size="13" font-weight="bold">Transcript</text>
+                </g>
+
+                <line x1="290" y1="100" x2="340" y2="100" stroke="#0ea5e9" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+                <!-- 10 Agents Analyze -->
+                <g>
+                    <circle cx="420" cy="100" r="40" fill="rgba(34, 197, 94, 0.2)" stroke="#4ade80" stroke-width="2"/>
+                    <text x="420" y="105" text-anchor="middle" fill="#4ade80" font-size="20">🤖</text>
+                    <text x="420" y="155" text-anchor="middle" fill="#cbd5e1" font-size="13" font-weight="bold">10 Agents</text>
+                    <text x="420" y="173" text-anchor="middle" fill="#cbd5e1" font-size="11">Score call</text>
+                </g>
+
+                <line x1="460" y1="100" x2="510" y2="100" stroke="#0ea5e9" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+                <!-- Score Generated -->
+                <g>
+                    <circle cx="590" cy="100" r="40" fill="rgba(59, 130, 246, 0.2)" stroke="#3b82f6" stroke-width="2"/>
+                    <text x="590" y="105" text-anchor="middle" fill="#3b82f6" font-size="20">📊</text>
+                    <text x="590" y="155" text-anchor="middle" fill="#cbd5e1" font-size="13" font-weight="bold">Score</text>
+                    <text x="590" y="173" text-anchor="middle" fill="#cbd5e1" font-size="11">0-100</text>
+                </g>
+
+                <line x1="630" y1="100" x2="680" y2="100" stroke="#0ea5e9" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+                <!-- Store Results -->
+                <g>
+                    <circle cx="760" cy="100" r="40" fill="rgba(236, 72, 153, 0.2)" stroke="#ec4899" stroke-width="2"/>
+                    <text x="760" y="105" text-anchor="middle" fill="#ec4899" font-size="20">💾</text>
+                    <text x="760" y="155" text-anchor="middle" fill="#cbd5e1" font-size="13" font-weight="bold">Store in DB</text>
+                    <text x="760" y="173" text-anchor="middle" fill="#cbd5e1" font-size="11">Supabase</text>
+                </g>
+
+                <line x1="800" y1="100" x2="850" y2="100" stroke="#0ea5e9" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+                <!-- Send Email -->
+                <g>
+                    <circle cx="930" cy="100" r="40" fill="rgba(34, 197, 94, 0.2)" stroke="#4ade80" stroke-width="2"/>
+                    <text x="930" y="105" text-anchor="middle" fill="#4ade80" font-size="20">📧</text>
+                    <text x="930" y="155" text-anchor="middle" fill="#cbd5e1" font-size="13" font-weight="bold">Send</text>
+                    <text x="930" y="173" text-anchor="middle" fill="#cbd5e1" font-size="11">Coaching email</text>
+                </g>
+
+                <line x1="970" y1="100" x2="1020" y2="100" stroke="#0ea5e9" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+                <!-- Rep Reviews -->
+                <g>
+                    <circle cx="1100" cy="100" r="40" fill="rgba(246, 184, 45, 0.2)" stroke="#f6b82d" stroke-width="2"/>
+                    <text x="1100" y="105" text-anchor="middle" fill="#f6b82d" font-size="20">👤</text>
+                    <text x="1100" y="155" text-anchor="middle" fill="#cbd5e1" font-size="13" font-weight="bold">Rep Reviews</text>
+                    <text x="1100" y="173" text-anchor="middle" fill="#cbd5e1" font-size="11">Dashboard</text>
+                </g>
+
+                <!-- Bottom: Associated Actions -->
+                <text x="20" y="250" fill="#94a3b8" font-size="12" font-weight="bold">ALSO HAPPENS:</text>
+
+                <rect x="20" y="265" width="180" height="45" fill="rgba(34, 197, 94, 0.1)" stroke="#4ade80" stroke-width="1" rx="4"/>
+                <text x="110" y="280" text-anchor="middle" fill="#4ade80" font-size="12" font-weight="bold">✓ Dashboard Update</text>
+                <text x="110" y="295" text-anchor="middle" fill="#cbd5e1" font-size="10">Rep metrics refresh instantly</text>
+
+                <rect x="220" y="265" width="180" height="45" fill="rgba(59, 130, 246, 0.1)" stroke="#3b82f6" stroke-width="1" rx="4"/>
+                <text x="310" y="280" text-anchor="middle" fill="#3b82f6" font-size="12" font-weight="bold">✓ Manager Alert</text>
+                <text x="310" y="295" text-anchor="middle" fill="#cbd5e1" font-size="10">Team score notified</text>
+
+                <rect x="420" y="265" width="180" height="45" fill="rgba(236, 72, 153, 0.1)" stroke="#ec4899" stroke-width="1" rx="4"/>
+                <text x="510" y="280" text-anchor="middle" fill="#ec4899" font-size="12" font-weight="bold">✓ Key Moments</text>
+                <text x="510" y="295" text-anchor="middle" fill="#cbd5e1" font-size="10">Highlights extracted & stored</text>
+
+                <rect x="620" y="265" width="180" height="45" fill="rgba(246, 184, 45, 0.1)" stroke="#f6b82d" stroke-width="1" rx="4"/>
+                <text x="710" y="280" text-anchor="middle" fill="#f6b82d" font-size="12" font-weight="bold">✓ Golden Comparison</text>
+                <text x="710" y="295" text-anchor="middle" fill="#cbd5e1" font-size="10">Scored vs top 5% calls</text>
+
+                <rect x="820" y="265" width="180" height="45" fill="rgba(168, 85, 247, 0.1)" stroke="#a855f7" stroke-width="1" rx="4"/>
+                <text x="910" y="280" text-anchor="middle" fill="#a855f7" font-size="12" font-weight="bold">✓ n8n Workflow</text>
+                <text x="910" y="295" text-anchor="middle" fill="#cbd5e1" font-size="10">Triggers automated coaching</text>
+
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#0ea5e9" />
+                    </marker>
+                </defs>
+            </svg>
+        </div>
+
+            <table class="roadmap-table">
+                <tr style="background: rgba(14, 165, 233, 0.1);">
+                    <th>Feature</th>
+                    <th>Status</th>
+                    <th>Blocker?</th>
+                </tr>
+                <tr>
+                    <td>View all rep calls</td>
+                    <td><span class="status-badge status-complete">✓ DONE</span></td>
+                    <td>No</td>
+                </tr>
+                <tr>
+                    <td>Get AI scoring feedback</td>
+                    <td><span class="status-badge status-complete">✓ DONE</span></td>
+                    <td>No</td>
+                </tr>
+                <tr>
+                    <td>Chat with AI coach</td>
+                    <td><span class="status-badge status-complete">✓ DONE</span></td>
+                    <td>No</td>
+                </tr>
+                <tr>
+                    <td>Manager team dashboards</td>
+                    <td><span class="status-badge status-complete">✓ DONE</span></td>
+                    <td>No</td>
+                </tr>
+                <tr>
+                    <td>Playbook integration</td>
+                    <td><span class="status-badge status-missing">✗ TODO</span></td>
+                    <td class="priority-high">YES</td>
+                </tr>
+                <tr>
+                    <td>Custom benchmarks</td>
+                    <td><span class="status-badge status-missing">✗ TODO</span></td>
+                    <td class="priority-high">YES</td>
+                </tr>
+                <tr>
+                    <td>Live call panel</td>
+                    <td><span class="status-badge status-missing">✗ TODO</span></td>
+                    <td class="priority-medium">HIGH</td>
+                </tr>
+            </table>
+
+            <div style="margin-top: 20px; text-align: center;">
+                <p><strong>Ready now:</strong> <span style="color: #4ade80; font-size: 1.2em;">4/7</span></p>
+                <p><strong>Needed for launch:</strong> <span style="color: #0ea5e9; font-size: 1.2em;">6-7/7</span></p>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h1><span class="emoji">📋</span>Launch Roadmap: Priority Items</h1>
+            <h2>What to build next (in order)</h2>
+
+            <svg style="width: 100%; height: 300px; margin: 20px 0;" viewBox="0 0 1200 300" preserveAspectRatio="xMidYMid meet">
+                <!-- Timeline Top -->
+                <line x1="100" y1="40" x2="1100" y2="40" stroke="#0ea5e9" stroke-width="2"/>
+                
+                <!-- Phase 1: Playbook Search -->
+                <circle cx="300" cy="40" r="15" fill="#ef4444"/>
+                <text x="300" y="85" text-anchor="middle" fill="#ef4444" font-size="14" font-weight="bold">PHASE 1</text>
+                <text x="300" y="102" text-anchor="middle" fill="#ef4444" font-size="14" font-weight="bold">Playbook</text>
+                <text x="300" y="119" text-anchor="middle" fill="#ef4444" font-size="14" font-weight="bold">Search</text>
+                
+                <rect x="200" y="140" width="200" height="140" fill="rgba(239, 68, 68, 0.1)" stroke="#ef4444" stroke-width="2" rx="6"/>
+                <text x="300" y="165" text-anchor="middle" fill="#ef4444" font-size="12" font-weight="bold">Add pgvector integration</text>
+                <text x="300" y="182" text-anchor="middle" fill="#cbd5e1" font-size="11">Let clients upload docs</text>
+                <text x="300" y="199" text-anchor="middle" fill="#cbd5e1" font-size="11">(PDF, DOCX, etc)</text>
+                <text x="300" y="220" text-anchor="middle" fill="#cbd5e1" font-size="11">Chunk & embed</text>
+                <text x="300" y="237" text-anchor="middle" fill="#cbd5e1" font-size="11">AI uses playbooks</text>
+                <text x="300" y="254" text-anchor="middle" fill="#ef4444" font-size="11" font-weight="bold">🚧 30% complete</text>
+
+                <!-- Arrow -->
+                <line x1="400" y1="40" x2="500" y2="40" stroke="#0ea5e9" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+                <!-- Phase 2: Custom Benchmarks -->
+                <circle cx="600" cy="40" r="15" fill="#facc15"/>
+                <text x="600" y="85" text-anchor="middle" fill="#facc15" font-size="14" font-weight="bold">PHASE 2</text>
+                <text x="600" y="102" text-anchor="middle" fill="#facc15" font-size="14" font-weight="bold">Custom</text>
+                <text x="600" y="119" text-anchor="middle" fill="#facc15" font-size="14" font-weight="bold">Benchmarks</text>
+
+                <rect x="500" y="140" width="200" height="140" fill="rgba(250, 204, 21, 0.1)" stroke="#facc15" stroke-width="2" rx="6"/>
+                <text x="600" y="165" text-anchor="middle" fill="#facc15" font-size="12" font-weight="bold">Let clients upload benchmark</text>
+                <text x="600" y="182" text-anchor="middle" fill="#cbd5e1" font-size="11">Define "golden call"</text>
+                <text x="600" y="199" text-anchor="middle" fill="#cbd5e1" font-size="11">criteria per company</text>
+                <text x="600" y="220" text-anchor="middle" fill="#cbd5e1" font-size="11">Score calls against</text>
+                <text x="600" y="237" text-anchor="middle" fill="#cbd5e1" font-size="11">their standards</text>
+                <text x="600" y="254" text-anchor="middle" fill="#facc15" font-size="11" font-weight="bold">❌ 0% - Not started</text>
+
+                <!-- Arrow -->
+                <line x1="700" y1="40" x2="800" y2="40" stroke="#0ea5e9" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+                <!-- Phase 3: Live Panel -->
+                <circle cx="900" cy="40" r="15" fill="#06b6d4"/>
+                <text x="900" y="85" text-anchor="middle" fill="#06b6d4" font-size="14" font-weight="bold">PHASE 3</text>
+                <text x="900" y="102" text-anchor="middle" fill="#06b6d4" font-size="14" font-weight="bold">Live Coaching</text>
+                <text x="900" y="119" text-anchor="middle" fill="#06b6d4" font-size="14" font-weight="bold">Panel</text>
+
+                <rect x="800" y="140" width="200" height="140" fill="rgba(6, 182, 212, 0.1)" stroke="#06b6d4" stroke-width="2" rx="6"/>
+                <text x="900" y="165" text-anchor="middle" fill="#06b6d4" font-size="12" font-weight="bold">Real-time sidebar coaching</text>
+                <text x="900" y="182" text-anchor="middle" fill="#cbd5e1" font-size="11">Tips during live calls</text>
+                <text x="900" y="199" text-anchor="middle" fill="#cbd5e1" font-size="11">Discovery prompts</text>
+                <text x="900" y="220" text-anchor="middle" fill="#cbd5e1" font-size="11">Objection handling tips</text>
+                <text x="900" y="237" text-anchor="middle" fill="#cbd5e1" font-size="11">Real-time suggestions</text>
+                <text x="900" y="254" text-anchor="middle" fill="#06b6d4" font-size="11" font-weight="bold">❌ 0% - Not started</text>
+
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#0ea5e9" />
+                    </marker>
+                </defs>
+            </svg>
+
+            <div style="display: flex; gap: 20px; margin-top: 20px;">
+                <div class="feature-box" style="flex: 1; background: rgba(34, 197, 94, 0.1); border-left: 4px solid #4ade80;">
+                    <p style="margin: 0; font-size: 0.9rem;"><span class="success">✓ System 1</span> fully works without Phase 1-3</p>
+                </div>
+                <div class="feature-box" style="flex: 1; background: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444;">
+                    <p style="margin: 0; font-size: 0.9rem;"><span style="color: #ef4444;">Must complete all 3 phases</span> before client launch</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide cover" style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);">
+            <h1 style="font-size: 3.5rem; margin-bottom: 30px;">Summary</h1>
+            
+            <div class="feature-box" style="border: 1px solid rgba(34, 197, 94, 0.5); background: rgba(34, 197, 94, 0.1); max-width: 700px;">
+                <h2 style="margin-top: 0; color: #4ade80; text-align: center;">READY NOW:</h2>
+                <p style="font-size: 1.1rem; line-height: 1.8; text-align: center;">
+                    System 1 fully works. 10 agents. Dashboards. Coaching. Emails. Demo & test with real data.
+                </p>
+            </div>
+
+            <div class="feature-box" style="border: 1px solid rgba(239, 68, 68, 0.5); background: rgba(239, 68, 68, 0.1); max-width: 700px; margin-top: 20px;">
+                <h2 style="margin-top: 0; color: #ef4444; text-align: center;">MUST ADD BEFORE CLIENT LAUNCH:</h2>
+                <p style="font-size: 1.1rem; line-height: 1.8; text-align: center;">
+                    Playbook search, custom benchmarks, live panel
+                </p>
+            </div>
+
+            <p style="margin-top: 60px; font-size: 1.3rem; text-align: center;">
+                <span style="background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 900;">
+                    Complete these 3 = Ready for Launch ✅
+                </span>
+            </p>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="slide-counter">
+        <span id="current-slide">1</span> / <span id="total-slides">17</span>
+    </div>
+
+    <div class="controls">
+        <button id="prev-btn" onclick="previousSlide()">← Previous</button>
+        <button id="next-btn" onclick="nextSlide()">Next →</button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        document.getElementById('total-slides').textContent = totalSlides;
+
+        function showSlide(n) {
+            if (currentSlide >= 0 && currentSlide < slides.length) {
+                slides[currentSlide].classList.remove('active');
+            }
+            currentSlide = (n + totalSlides) % totalSlides;
+            if (currentSlide >= 0 && currentSlide < slides.length) {
+                slides[currentSlide].classList.add('active');
+            }
+            
+            document.getElementById('current-slide').textContent = currentSlide + 1;
+            document.getElementById('prev-btn').disabled = currentSlide === 0;
+            document.getElementById('next-btn').disabled = currentSlide === totalSlides - 1;
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                showSlide(currentSlide + 1);
+            }
+        }
+
+        function previousSlide() {
+            if (currentSlide > 0) {
+                showSlide(currentSlide - 1);
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') nextSlide();
+            if (e.key === 'ArrowLeft') previousSlide();
+        });
+
+        showSlide(0);
+    </script>
+</body>
+</html>

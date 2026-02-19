@@ -5,7 +5,7 @@ interface AuthContextType {
   user: any;
   session: any;
   loading: boolean;
-  signUp: (email: string, password: string, name: string, role: 'rep' | 'manager') => Promise<any>;
+  signUp: (email: string, password: string, name: string, role: 'rep' | 'manager' | 'admin') => Promise<any>;
   signIn: (email: string, password: string) => Promise<any>;
   signOut: () => Promise<void>;
 }
@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const signUp = async (email: string, password: string, name: string, role: 'rep' | 'manager') => {
+  const signUp = async (email: string, password: string, name: string, role: 'rep' | 'manager' | 'admin') => {
     try {
       // Sign up with Supabase Auth
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
@@ -76,7 +76,87 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      // Demo login - Rep
+      // Demo login - Sarah Johnson
+      if ((email === 'sarah@example.com' || email === 'Sarah Johnson') && password === 'demo123') {
+        const demoRep = {
+          id: 'a0000000-0000-0000-0000-000000000001',
+          email: 'sarah@example.com',
+          user_metadata: {
+            name: 'Sarah Johnson',
+            role: 'rep'
+          }
+        };
+        
+        localStorage.setItem('demoUser', JSON.stringify(demoRep));
+        setUser(demoRep);
+        return { data: { user: demoRep }, error: null };
+      }
+
+      // Demo login - Tom Martinez
+      if ((email === 'tom@example.com' || email === 'Tom Martinez') && password === 'demo123') {
+        const demoRep = {
+          id: 'a0000000-0000-0000-0000-000000000002',
+          email: 'tom@example.com',
+          user_metadata: {
+            name: 'Tom Martinez',
+            role: 'rep'
+          }
+        };
+        
+        localStorage.setItem('demoUser', JSON.stringify(demoRep));
+        setUser(demoRep);
+        return { data: { user: demoRep }, error: null };
+      }
+
+      // Demo login - Emma Rodriguez
+      if ((email === 'emma@example.com' || email === 'Emma Rodriguez') && password === 'demo123') {
+        const demoRep = {
+          id: 'a0000000-0000-0000-0000-000000000003',
+          email: 'emma@example.com',
+          user_metadata: {
+            name: 'Emma Rodriguez',
+            role: 'rep'
+          }
+        };
+        
+        localStorage.setItem('demoUser', JSON.stringify(demoRep));
+        setUser(demoRep);
+        return { data: { user: demoRep }, error: null };
+      }
+
+      // Demo login - Manager
+      if ((email === 'manager@example.com' || email === 'John Manager') && password === 'demo123') {
+        const demoManager = {
+          id: 'b0000000-0000-0000-0000-000000000001',
+          email: 'manager@example.com',
+          user_metadata: {
+            name: 'John Manager',
+            role: 'manager'
+          }
+        };
+        
+        localStorage.setItem('demoUser', JSON.stringify(demoManager));
+        setUser(demoManager);
+        return { data: { user: demoManager }, error: null };
+      }
+
+      // Demo login - Admin
+      if ((email === 'admin@example.com' || email === 'Admin User') && password === 'demo123') {
+        const demoAdmin = {
+          id: 'c0000000-0000-0000-0000-000000000001',
+          email: 'admin@example.com',
+          user_metadata: {
+            name: 'Admin User',
+            role: 'admin'
+          }
+        };
+
+        localStorage.setItem('demoUser', JSON.stringify(demoAdmin));
+        setUser(demoAdmin);
+        return { data: { user: demoAdmin }, error: null };
+      }
+
+      // Legacy support - Rep
       if (email === 'rep@example.com' && password === 'demo123') {
         const demoRep = {
           id: 'a0000000-0000-0000-0000-000000000001',
@@ -90,22 +170,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('demoUser', JSON.stringify(demoRep));
         setUser(demoRep);
         return { data: { user: demoRep }, error: null };
-      }
-
-      // Demo login - Manager
-      if (email === 'manager@example.com' && password === 'demo123') {
-        const demoManager = {
-          id: 'b0000000-0000-0000-0000-000000000001',
-          email: 'manager@example.com',
-          user_metadata: {
-            name: 'John Manager',
-            role: 'manager'
-          }
-        };
-        
-        localStorage.setItem('demoUser', JSON.stringify(demoManager));
-        setUser(demoManager);
-        return { data: { user: demoManager }, error: null };
       }
 
       // Gerçek Supabase auth

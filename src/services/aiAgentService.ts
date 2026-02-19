@@ -37,6 +37,75 @@ const openai = new OpenAI({
   dangerouslyAllowBrowser: true
 });
 
+async function getBenchmarkContext(callId: string): Promise<string> {
+  try {
+    const { data: currentCall } = await supabase
+      .from('calls')
+      .select('rep_id')
+      .eq('id', callId)
+      .single();
+
+    if (!currentCall?.rep_id) return '';
+
+    const { data: benchmarkRows, error } = await supabase
+      .from('benchmark_transcripts')
+      .select('call_id, title, notes')
+      .eq('rep_id', currentCall.rep_id)
+      .eq('is_approved_benchmark', true)
+      .order('benchmark_date', { ascending: false })
+      .limit(3);
+
+    if (error || !benchmarkRows?.length) return '';
+
+    const details = await Promise.all(
+      benchmarkRows.map(async (row: any) => {
+        const { data: transcript } = await supabase
+          .from('transcripts')
+          .select('transcript_text, segments')
+          .eq('call_id', row.call_id)
+          .single();
+
+        const { data: analyses } = await supabase
+          .from('analysis')
+          .select('scores')
+          .eq('call_id', row.call_id)
+          .limit(1);
+
+        const transcriptText =
+          transcript?.transcript_text ||
+          (Array.isArray(transcript?.segments)
+            ? transcript.segments.map((seg: any) => `${seg.speaker}: ${seg.text}`).join('\n')
+            : '');
+
+        const overall = analyses?.[0]?.scores?.overall;
+
+        return {
+          title: row.title || 'Benchmark Call',
+          notes: row.notes || '',
+          score: typeof overall === 'number' ? overall : null,
+          excerpt: transcriptText.slice(0, 1200),
+        };
+      })
+    );
+
+    const formatted = details
+      .filter((item) => item.excerpt)
+      .map((item, index) => {
+        const scoreText = item.score !== null ? ` | Score: ${item.score}/100` : '';
+        const notesText = item.notes ? ` | Notes: ${item.notes}` : '';
+        return `${index + 1}. ${item.title}${scoreText}${notesText}\n${item.excerpt}`;
+      })
+      .join('\n\n');
+
+    if (!formatted) return '';
+
+    return `\n\nBENCHMARK CONTEXT (client best-practice references):\n${formatted}\n\nWhen scoring, align feedback with these benchmark patterns and call out gaps versus benchmark behavior.`;
+  } catch (error) {
+    console.error('Failed to load benchmark context:', error);
+    return '';
+  }
+}
+
 // ============================================
 // CATEGORY 1: CALL ANALYSIS AGENTS (1-5)
 // ============================================
@@ -45,7 +114,7 @@ const openai = new OpenAI({
  * Agent 1: Objection Handler 🛡️
  * Detects customer objections and scores rep's responses
  */
-export async function runObjectionHandlerAgent(callId: string, transcript: any[]) {
+export async function runObjectionHandlerAgent(callId: string, transcript: any[], benchmarkContext: string = '') {
   console.log('🛡️ Running Objection Handler Agent...');
 
   const transcriptText = transcript.map(seg => 
@@ -56,6 +125,7 @@ export async function runObjectionHandlerAgent(callId: string, transcript: any[]
 
 TRANSCRIPT:
 ${transcriptText}
+${benchmarkContext}
 
 For each objection, provide:
 1. Timestamp
@@ -146,7 +216,7 @@ Return JSON:
  * Agent 2: Discovery Coach 🔍
  * Analyzes how well rep qualifies prospects and uncovers needs
  */
-export async function runDiscoveryCoachAgent(callId: string, transcript: any[]) {
+export async function runDiscoveryCoachAgent(callId: string, transcript: any[], benchmarkContext: string = '') {
   console.log('🔍 Running Discovery Coach Agent...');
 
   const transcriptText = transcript.map(seg => 
@@ -157,6 +227,7 @@ export async function runDiscoveryCoachAgent(callId: string, transcript: any[]) 
 
 TRANSCRIPT:
 ${transcriptText}
+${benchmarkContext}
 
 Evaluate:
 1. **SPIN Coverage:**
@@ -230,7 +301,7 @@ Return JSON:
  * Agent 3: Closing Coach 🎯
  * Evaluates call ending, next steps, and commitment level
  */
-export async function runClosingCoachAgent(callId: string, transcript: any[]) {
+export async function runClosingCoachAgent(callId: string, transcript: any[], benchmarkContext: string = '') {
   console.log('🎯 Running Closing Coach Agent...');
 
   // Focus on last 20% of call
@@ -243,6 +314,7 @@ export async function runClosingCoachAgent(callId: string, transcript: any[]) {
 
 CLOSING TRANSCRIPT:
 ${closingText}
+${benchmarkContext}
 
 Evaluate:
 1. **Next Step Clarity:** Is there a clear, specific next step?
@@ -381,7 +453,7 @@ export async function runTalkTimeAnalyzerAgent(callId: string, transcript: any[]
  * Agent 5: Question Quality Analyzer ❓
  * Evaluates quality and type of questions asked
  */
-export async function runQuestionQualityAgent(callId: string, transcript: any[]) {
+export async function runQuestionQualityAgent(callId: string, transcript: any[], benchmarkContext: string = '') {
   console.log('❓ Running Question Quality Analyzer Agent...');
 
   const repSegments = transcript.filter(seg => seg.speaker === 'Rep');
@@ -395,6 +467,7 @@ export async function runQuestionQualityAgent(callId: string, transcript: any[])
 
 QUESTIONS:
 ${transcriptText}
+${benchmarkContext}
 
 For each question, classify and score:
 1. **Type:** open_ended, probing, clarifying, closed, leading
@@ -599,6 +672,7 @@ export async function runAllAgents(callId: string) {
   }
 
   const transcript = transcriptData.segments;
+  const benchmarkContext = await getBenchmarkContext(callId);
 
   // Run all 5 call analysis agents in parallel
   const [
@@ -608,11 +682,11 @@ export async function runAllAgents(callId: string) {
     talkTimeResult,
     questionResult
   ] = await Promise.all([
-    runObjectionHandlerAgent(callId, transcript),
-    runDiscoveryCoachAgent(callId, transcript),
-    runClosingCoachAgent(callId, transcript),
+    runObjectionHandlerAgent(callId, transcript, benchmarkContext),
+    runDiscoveryCoachAgent(callId, transcript, benchmarkContext),
+    runClosingCoachAgent(callId, transcript, benchmarkContext),
     runTalkTimeAnalyzerAgent(callId, transcript),
-    runQuestionQualityAgent(callId, transcript)
+    runQuestionQualityAgent(callId, transcript, benchmarkContext)
   ]);
 
   // Run master orchestrator

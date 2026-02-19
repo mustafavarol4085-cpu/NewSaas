@@ -8,7 +8,7 @@ import { AIChatPanel } from "./AIChatPanel";
 import { AICoachPanel } from "./AICoachPanel";
 import { EnrichedScheduledCallCard } from "./EnrichedScheduledCallCard";
 import {
-  useTeamScheduledCalls,
+  useAllScheduledCalls,
   useAllCalls,
   useAllAnalysis,
   useAllReps,
@@ -43,7 +43,7 @@ export function ManagerPerformanceDashboard() {
   const audioRef = useRef<HTMLAudioElement>(null);
 
   // Fetch data from Supabase
-  const { data: scheduledCallsData, loading: scheduledLoading } = useTeamScheduledCalls();
+  const { data: scheduledCallsData, loading: scheduledLoading } = useAllScheduledCalls();
   const { data: supabaseCalls, loading: callsLoading } = useAllCalls();
   const { data: analysisData, loading: analysisLoading } = useAllAnalysis();
   const { data: supabaseReps, loading: repsLoading } = useAllReps();
@@ -119,6 +119,8 @@ export function ManagerPerformanceDashboard() {
 
         return {
           id: idx + 1,
+          dbCallId: call.id,
+          repId: call.rep_id || null,
           rep: call.rep_name || "Unknown Rep",
           customer: call.customer_name || "Unknown Customer",
           company: call.company || "Unknown Company",
@@ -150,6 +152,8 @@ export function ManagerPerformanceDashboard() {
     : [
     {
       id: 1,
+      dbCallId: null,
+      repId: null,
       rep: "Emma Rodriguez",
       customer: "David Kim",
       company: "FinanceHub",
@@ -217,6 +221,8 @@ Customer: Thanks, Emma. Talk soon!`,
     },
     {
       id: 2,
+      dbCallId: null,
+      repId: null,
       rep: "Sarah Johnson",
       customer: "Michael Chen",
       company: "TechSolutions",
@@ -280,6 +286,8 @@ Customer: Thanks, you too!`,
     },
     {
       id: 3,
+      dbCallId: null,
+      repId: null,
       rep: "Tom Martinez",
       customer: "Jennifer Wu",
       company: "MarketPro",
@@ -1467,6 +1475,7 @@ Customer: Yes, I'm sure. Goodbye.`,
             ))}
           </div>
         </div>
+
       </div>
 
       {/* AI Chat Panel */}
