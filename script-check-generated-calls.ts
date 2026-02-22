@@ -10,7 +10,7 @@ const supabase = createClient(
 
 async function showCalls() {
   console.log('\n' + '='.repeat(80));
-  console.log('📊 SON OLUŞTURULAN CALLLAR');
+  console.log('📊 RECENTLY GENERATED CALLS');
   console.log('='.repeat(80) + '\n');
 
   const { data: calls } = await supabase
@@ -20,7 +20,7 @@ async function showCalls() {
     .order('created_at', { ascending: false });
 
   if (!calls || calls.length === 0) {
-    console.log('Henüz call oluşturulmadı');
+    console.log('No calls generated yet');
     return;
   }
 
@@ -31,17 +31,17 @@ async function showCalls() {
 
     console.log(`${i + 1}. 📞 ${call.customer_name} (${call.company})`);
     console.log(`   Rep: ${call.rep_name}`);
-    console.log(`   Tür: ${call.call_type}`);
-    console.log(`   Endüstri: ${call.industry}`);
-    console.log(`   📅 Tarih: ${callDate}`);
-    console.log(`   🕐 Saat: ${callTime}`);
-    console.log(`   ⏱️  Süre: ${durationMin} dakika`);
-    console.log(`   ✅ Sonuç: ${call.outcome}`);
+    console.log(`   Type: ${call.call_type}`);
+    console.log(`   Industry: ${call.industry}`);
+    console.log(`   📅 Date: ${callDate}`);
+    console.log(`   🕐 Time: ${callTime}`);
+    console.log(`   ⏱️  Duration: ${durationMin} minutes`);
+    console.log(`   ✅ Outcome: ${call.outcome}`);
     console.log('');
   });
 
   console.log('\n' + '='.repeat(80));
-  console.log('📊 ANALYSIS SKORLARI (İlk 3 Call)');
+  console.log('📊 ANALYSIS SCORES (First 3 Calls)');
   console.log('='.repeat(80) + '\n');
 
   for (let i = 0; i < Math.min(3, calls.length); i++) {
@@ -54,10 +54,10 @@ async function showCalls() {
 
     if (analysis) {
       console.log(`${i + 1}. ${call.customer_name} (${call.rep_name})`);
-      console.log(`   Rep Adı: ${call.rep_name}`);
-      console.log(`   Müşteri: ${call.customer_name}`);
-      console.log(`   Şirket: ${call.company}`);
-      console.log(`\n   📊 Skorlar:`);
+      console.log(`   Rep Name: ${call.rep_name}`);
+      console.log(`   Customer: ${call.customer_name}`);
+      console.log(`   Company: ${call.company}`);
+      console.log(`\n   📊 Scores:`);
       console.log(`   ├─ Overall: ${analysis.scores.overall}/100 ${'█'.repeat(Math.round(analysis.scores.overall / 10))}${' '.repeat(10 - Math.round(analysis.scores.overall / 10))}`);
       console.log(`   ├─ Discovery: ${analysis.scores.discovery}/100 ${'█'.repeat(Math.round(analysis.scores.discovery / 10))}${' '.repeat(10 - Math.round(analysis.scores.discovery / 10))}`);
       console.log(`   ├─ Qualification: ${analysis.scores.qualification}/100 ${'█'.repeat(Math.round(analysis.scores.qualification / 10))}${' '.repeat(10 - Math.round(analysis.scores.qualification / 10))}`);
@@ -66,16 +66,16 @@ async function showCalls() {
       console.log(`   └─ Rapport Building: ${analysis.scores.rapport_building}/100 ${'█'.repeat(Math.round(analysis.scores.rapport_building / 10))}${' '.repeat(10 - Math.round(analysis.scores.rapport_building / 10))}`);
       console.log(`\n   💬 Coaching Feedback:`);
       console.log(`   "${analysis.coaching.feedback.substring(0, 120)}..."`);
-      console.log(`\n   ✅ Güçlü Yönler:`);
+      console.log(`\n   ✅ Strengths:`);
       analysis.coaching.strengths.forEach(s => console.log(`      • ${s}`));
-      console.log(`\n   ⚠️  Geliştirilecek Alanlar:`);
+      console.log(`\n   ⚠️  Areas for Improvement:`);
       analysis.coaching.improvement_areas.forEach(a => console.log(`      • ${a}`));
       console.log('\n' + '-'.repeat(80) + '\n');
     }
   }
 
   console.log('\n' + '='.repeat(80));
-  console.log(`✅ TOPLAM: ${calls.length} Yeni Call Oluşturuldu`);
+  console.log(`✅ TOTAL: ${calls.length} New Calls Generated`);
   console.log('='.repeat(80) + '\n');
 }
 

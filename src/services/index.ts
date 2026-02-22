@@ -12,3 +12,4 @@ export * from './n8nService';
 export * from './goldenCallsService';
 export * from './kbService';
 export * from './benchmarkService';
+export * from './liveCallService';

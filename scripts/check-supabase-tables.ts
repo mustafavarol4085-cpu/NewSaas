@@ -6,7 +6,7 @@ const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXB
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 async function checkTables() {
-  console.log('🔍 Supabase veritabanını inceliyorum...\n');
+  console.log('🔍 Inspecting Supabase database...\n');
 
   try {
     // List all tables using PostgreSQL information schema
@@ -16,10 +16,10 @@ async function checkTables() {
       .eq('table_schema', 'public');
 
     if (tablesError) {
-      console.error('❌ Tablo listesi alınamadı:', tablesError.message);
+      console.error('❌ Failed to retrieve table list:', tablesError.message);
       
       // Try alternate method - query specific tables
-      console.log('\n📊 Bilinen tablolar kontrol ediliyor...\n');
+      console.log('\n📊 Checking known tables...\n');
       
       const knownTables = ['calls', 'analysis', 'transcript', 'users', 'reps', 'managers', 'performance_dimensions', 'ai_insights', 'scheduled_calls'];
       
@@ -30,10 +30,10 @@ async function checkTables() {
             .select('*', { count: 'exact', head: true });
           
           if (!error) {
-            console.log(`✅ ${tableName} - ${count || 0} kayıt`);
+            console.log(`✅ ${tableName} - ${count || 0} records`);
           }
         } catch (e) {
-          console.log(`❌ ${tableName} - Tablo yok`);
+          console.log(`❌ ${tableName} - Table not found`);
         }
       }
       
@@ -41,11 +41,11 @@ async function checkTables() {
     }
 
     if (!tables || tables.length === 0) {
-      console.log('⚠️  Public schema\'da tablo bulunamadı.\n');
+      console.log('⚠️  No tables found in public schema.\n');
       return;
     }
 
-    console.log(`📋 Bulunan tablolar (${tables.length}):\n`);
+    console.log(`📋 Tables found (${tables.length}):\n`);
     
     for (const table of tables) {
       const tableName = table.table_name;
@@ -56,26 +56,26 @@ async function checkTables() {
         .select('*', { count: 'exact', head: true });
       
       if (countError) {
-        console.log(`  • ${tableName} - (kayıt sayısı alınamadı)`);
+        console.log(`  • ${tableName} - (could not retrieve record count)`);
       } else {
-        console.log(`  ✅ ${tableName} - ${count || 0} kayıt`);
+        console.log(`  ✅ ${tableName} - ${count || 0} records`);
       }
     }
 
     // Check specific tables we need
-    console.log('\n\n🔎 İhtiyaç duyulan tablolar kontrolü:\n');
+    console.log('\n\n🔎 Required tables check:\n');
     
     const requiredTables = {
-      'calls': 'Satış görüşmeleri',
-      'analysis': 'Call analysis verileri',
-      'transcript': 'Transcript verileri',
-      'users': 'Kullanıcılar (auth.users extend)',
-      'reps': 'Satış temsilcileri',
-      'managers': 'Yöneticiler',
-      'performance_dimensions': 'Performans boyutları (discovery, qualification, vb.)',
-      'ai_insights': 'AI tarafından üretilen insights',
-      'scheduled_calls': 'Planlanmış görüşmeler',
-      'team_metrics': 'Takım metrikleri'
+      'calls': 'Sales calls',
+      'analysis': 'Call analysis data',
+      'transcript': 'Transcript data',
+      'users': 'Users (auth.users extend)',
+      'reps': 'Sales representatives',
+      'managers': 'Managers',
+      'performance_dimensions': 'Performance dimensions (discovery, qualification, etc.)',
+      'ai_insights': 'AI-generated insights',
+      'scheduled_calls': 'Scheduled calls',
+      'team_metrics': 'Team metrics'
     };
 
     const existingTableNames = tables.map(t => t.table_name);
@@ -85,13 +85,13 @@ async function checkTables() {
       if (exists) {
         console.log(`  ✅ ${tableName} - ${description}`);
       } else {
-        console.log(`  ❌ ${tableName} - ${description} (EKSİK)`);
+        console.log(`  ❌ ${tableName} - ${description} (MISSING)`);
       }
     }
 
     // If calls table exists, show its structure
     if (existingTableNames.includes('calls')) {
-      console.log('\n\n📊 "calls" tablosu detayı:\n');
+      console.log('\n\n📊 "calls" table details:\n');
       
       const { data: sampleCall } = await supabase
         .from('calls')
@@ -100,7 +100,7 @@ async function checkTables() {
         .single();
       
       if (sampleCall) {
-        console.log('  Mevcut sütunlar:');
+        console.log('  Available columns:');
         Object.keys(sampleCall).forEach(key => {
           console.log(`    • ${key}: ${typeof sampleCall[key]}`);
         });
@@ -109,7 +109,7 @@ async function checkTables() {
 
     // If analysis table exists, show its structure
     if (existingTableNames.includes('analysis')) {
-      console.log('\n\n📊 "analysis" tablosu detayı:\n');
+      console.log('\n\n📊 "analysis" table details:\n');
       
       const { data: sampleAnalysis } = await supabase
         .from('analysis')
@@ -118,7 +118,7 @@ async function checkTables() {
         .single();
       
       if (sampleAnalysis) {
-        console.log('  Mevcut sütunlar:');
+        console.log('  Available columns:');
         Object.keys(sampleAnalysis).forEach(key => {
           console.log(`    • ${key}: ${typeof sampleAnalysis[key]}`);
         });
@@ -127,7 +127,7 @@ async function checkTables() {
 
     // If transcript table exists, show its structure
     if (existingTableNames.includes('transcript')) {
-      console.log('\n\n📊 "transcript" tablosu detayı:\n');
+      console.log('\n\n📊 "transcript" table details:\n');
       
       const { data: sampleTranscript } = await supabase
         .from('transcript')
@@ -136,7 +136,7 @@ async function checkTables() {
         .single();
       
       if (sampleTranscript) {
-        console.log('  Mevcut sütunlar:');
+        console.log('  Available columns:');
         Object.keys(sampleTranscript).forEach(key => {
           console.log(`    • ${key}: ${typeof sampleTranscript[key]}`);
         });
@@ -144,7 +144,7 @@ async function checkTables() {
     }
 
   } catch (error: any) {
-    console.error('❌ Hata:', error.message);
+    console.error('❌ Error:', error.message);
   }
 }
 

@@ -172,7 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { data: { user: demoRep }, error: null };
       }
 
-      // Gerçek Supabase auth
+      // Real Supabase auth
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,

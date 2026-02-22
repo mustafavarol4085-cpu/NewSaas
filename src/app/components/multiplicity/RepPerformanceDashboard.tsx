@@ -39,6 +39,7 @@ import { useState, useRef, useEffect } from "react";
 import { AIChatPanel } from "./AIChatPanel";
 import { AICoachPanel } from "./AICoachPanel";
 import { EnrichedScheduledCallCard } from "./EnrichedScheduledCallCard";
+import { MeetingAssistant } from "./MeetingAssistant";
 import { useAuth } from "../auth/AuthProvider";
 import {
   useAllCalls,
@@ -49,6 +50,8 @@ import {
   useAllKeyMoments
 } from "../../../services/hooks";
 import { getAICoachingSummaryWithEmail } from "../../../services/aiCoachService";
+import { addLiveTranscriptSegment, endLiveCallSession, startLiveCallSession } from "../../../services/liveCallService";
+import { generateLiveMicroTip } from "../../../services/openaiService";
 
 export function RepPerformanceDashboard() {
   const { user } = useAuth();
@@ -74,6 +77,24 @@ export function RepPerformanceDashboard() {
     "date" | "name" | "type"
   >("date");
   const [liveAssistantMessage, setLiveAssistantMessage] = useState<string | null>(null);
+  const [startingLiveCallId, setStartingLiveCallId] = useState<string | null>(null);
+  const [activeLiveSessionId, setActiveLiveSessionId] = useState<string | null>(null);
+  const [activeLiveCustomer, setActiveLiveCustomer] = useState<string | null>(null);
+  const [activeLiveCallType, setActiveLiveCallType] = useState<string | null>(null);
+  const [liveSnippet, setLiveSnippet] = useState("");
+  const [liveSpeaker, setLiveSpeaker] = useState<"rep" | "customer" | "unknown">("rep");
+  const [isGeneratingLiveTip, setIsGeneratingLiveTip] = useState(false);
+  const [liveTip, setLiveTip] = useState<string | null>(null);
+  const [isEndingLiveSession, setIsEndingLiveSession] = useState(false);
+
+  // Meeting Assistant full-screen state
+  const [showMeetingAssistant, setShowMeetingAssistant] = useState(false);
+  const [meetingAssistantData, setMeetingAssistantData] = useState<{
+    sessionId: string;
+    customerName: string;
+    callType: string;
+    company?: string;
+  } | null>(null);
 
   // AI Coaching state
   const [aiCoachingData, setAiCoachingData] = useState<{
@@ -272,7 +293,7 @@ export function RepPerformanceDashboard() {
     keyMoments: [],
   };
 
-  // Fallback untuk seçili çağrı
+  // Fallback for selected call
   const selectedCall =
     displayCalls && displayCalls.length > 0
       ? displayCalls.find((c) => c.id === selectedCallId) || displayCalls[0]
@@ -515,6 +536,120 @@ export function RepPerformanceDashboard() {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const handleStartLiveAssistant = async (call: any) => {
+    const rawCall = call?.rawCall;
+    if (!rawCall?.id || !rawCall?.rep_id) {
+      setLiveAssistantMessage("Unable to start live assistant: missing schedule or rep information.");
+      return;
+    }
+
+    if (rawCall.live_assistant_enabled === false) {
+      setLiveAssistantMessage("Live assistant is disabled for this scheduled call.");
+      return;
+    }
+
+    if (!rawCall.meeting_url) {
+      setLiveAssistantMessage("Meeting link is missing. Ask your manager/admin to add meeting_url.");
+      return;
+    }
+
+    setStartingLiveCallId(rawCall.id);
+    try {
+      const session = await startLiveCallSession({
+        scheduledCallId: rawCall.id,
+        repId: rawCall.rep_id,
+        meetingUrl: rawCall.meeting_url,
+      });
+
+      if (!session) {
+        setLiveAssistantMessage("Could not create live session. Please try again.");
+        return;
+      }
+
+      setActiveLiveSessionId(session.id);
+      setActiveLiveCustomer(call.customer || rawCall.customer_name || null);
+      setActiveLiveCallType(call.type || rawCall.call_type || null);
+      setLiveTip(null);
+      setLiveSnippet("");
+
+      // Open meeting link in background
+      window.open(rawCall.meeting_url, '_blank', 'noopener,noreferrer');
+
+      // Launch full-screen Meeting Assistant
+      setMeetingAssistantData({
+        sessionId: session.id,
+        customerName: call.customer || rawCall.customer_name || 'Unknown',
+        callType: call.type || rawCall.call_type || 'Call',
+        company: rawCall.company || undefined,
+      });
+      setShowMeetingAssistant(true);
+      setLiveAssistantMessage(`Meeting Assistant opened for ${call.customer}.`);
+    } finally {
+      setStartingLiveCallId(null);
+    }
+  };
+
+  const handleGenerateLiveTip = async () => {
+    if (!activeLiveSessionId) {
+      setLiveAssistantMessage("No active live session found. Start a live session first.");
+      return;
+    }
+
+    const snippet = liveSnippet.trim();
+    if (!snippet) {
+      setLiveAssistantMessage("Type a short live transcript snippet first.");
+      return;
+    }
+
+    if (isGeneratingLiveTip) return;
+
+    setIsGeneratingLiveTip(true);
+    try {
+      await addLiveTranscriptSegment({
+        sessionId: activeLiveSessionId,
+        speaker: liveSpeaker,
+        text: snippet,
+      });
+
+      const tip = await generateLiveMicroTip({
+        transcriptSnippet: snippet,
+        customerName: activeLiveCustomer || undefined,
+        callType: activeLiveCallType || undefined,
+      });
+
+      setLiveTip(tip);
+      setLiveAssistantMessage("Live coaching tip generated.");
+      setLiveSnippet("");
+    } catch (error) {
+      console.error(error);
+      setLiveAssistantMessage("Failed to generate live coaching tip. Try again.");
+    } finally {
+      setIsGeneratingLiveTip(false);
+    }
+  };
+
+  const handleEndLiveSession = async () => {
+    if (!activeLiveSessionId || isEndingLiveSession) return;
+
+    setIsEndingLiveSession(true);
+    try {
+      const ok = await endLiveCallSession(activeLiveSessionId);
+      if (!ok) {
+        setLiveAssistantMessage("Could not end live session. Please try again.");
+        return;
+      }
+
+      setLiveAssistantMessage("Live session ended.");
+      setActiveLiveSessionId(null);
+      setActiveLiveCustomer(null);
+      setActiveLiveCallType(null);
+      setLiveSnippet("");
+      setLiveTip(null);
+    } finally {
+      setIsEndingLiveSession(false);
+    }
+  };
+
   // Audio player handlers
   const handlePlayPause = async () => {
     if (audioRef.current) {
@@ -642,6 +777,25 @@ export function RepPerformanceDashboard() {
   });
 
   return (
+    <>
+      {/* Full-screen Meeting Assistant overlay */}
+      {showMeetingAssistant && meetingAssistantData && (
+        <MeetingAssistant
+          sessionId={meetingAssistantData.sessionId}
+          customerName={meetingAssistantData.customerName}
+          callType={meetingAssistantData.callType}
+          company={meetingAssistantData.company}
+          onClose={() => {
+            setShowMeetingAssistant(false);
+            setMeetingAssistantData(null);
+            setActiveLiveSessionId(null);
+            setActiveLiveCustomer(null);
+            setActiveLiveCallType(null);
+            setLiveSnippet("");
+            setLiveTip(null);
+          }}
+        />
+      )}
     <div className="min-h-screen bg-[#0a1628]">
       {/* Header */}
       <div className="bg-gradient-to-r from-[#1e3a8a] to-[#1e40af] text-white px-8 py-8 shadow-2xl border-b border-cyan-500/20">
@@ -862,6 +1016,57 @@ export function RepPerformanceDashboard() {
                 <p className="text-xs text-amber-300 mb-3">{liveAssistantMessage}</p>
               )}
 
+              {activeLiveSessionId && (
+                <Card className="mb-4 p-4 border border-cyan-500/30 bg-[#0f172a]">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <p className="text-sm font-semibold text-cyan-300">
+                      Live Assistant Active {activeLiveCustomer ? `• ${activeLiveCustomer}` : ""}
+                    </p>
+                    <Button
+                      onClick={handleEndLiveSession}
+                      disabled={isEndingLiveSession}
+                      className="h-8 px-3 bg-red-700/40 hover:bg-red-700/60 text-red-100 border border-red-500/30 disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {isEndingLiveSession ? "Ending..." : "End Session"}
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-2 mb-2">
+                    <select
+                      value={liveSpeaker}
+                      onChange={(e) => setLiveSpeaker(e.target.value as "rep" | "customer" | "unknown")}
+                      className="col-span-1 bg-[#1e293b] border border-cyan-500/30 text-cyan-300 text-xs rounded px-2 py-2 focus:outline-none focus:border-cyan-500"
+                    >
+                      <option value="rep">Rep</option>
+                      <option value="customer">Customer</option>
+                      <option value="unknown">Unknown</option>
+                    </select>
+                    <textarea
+                      value={liveSnippet}
+                      onChange={(e) => setLiveSnippet(e.target.value)}
+                      placeholder="Paste latest spoken sentence for instant coaching..."
+                      rows={2}
+                      className="col-span-3 bg-[#1e293b] border border-cyan-500/30 text-white text-xs rounded px-2 py-2 focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+
+                  <Button
+                    onClick={handleGenerateLiveTip}
+                    disabled={isGeneratingLiveTip}
+                    className="w-full bg-cyan-600 hover:bg-cyan-700 text-white border-0 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {isGeneratingLiveTip ? "Generating Instant Tip..." : "Get Instant Tip (Fast Model)"}
+                  </Button>
+
+                  {liveTip && (
+                    <div className="mt-3 rounded-lg border border-cyan-500/30 bg-[#1e293b] p-3">
+                      <p className="text-[11px] text-cyan-300 mb-1">Live Micro-Coaching</p>
+                      <p className="text-sm text-gray-100 whitespace-pre-wrap">{liveTip}</p>
+                    </div>
+                  )}
+                </Card>
+              )}
+
               <div className="space-y-3">
                 {sortedScheduledCalls.length > 0 ? (
                   sortedScheduledCalls.map((call: any) => (
@@ -869,14 +1074,11 @@ export function RepPerformanceDashboard() {
                       <EnrichedScheduledCallCard call={call.rawCall} />
                       <div className="px-4 pb-4">
                         <Button
-                          onClick={() =>
-                            setLiveAssistantMessage(
-                              `Live Call Assistant is not completed yet for ${call.customer}.`
-                            )
-                          }
-                          className="w-full bg-cyan-700/40 hover:bg-cyan-700/60 text-cyan-100 border border-cyan-500/30"
+                          onClick={() => handleStartLiveAssistant(call)}
+                          disabled={startingLiveCallId === call.rawCall?.id}
+                          className="w-full bg-cyan-700/40 hover:bg-cyan-700/60 text-cyan-100 border border-cyan-500/30 disabled:opacity-60 disabled:cursor-not-allowed"
                         >
-                          Start with Live Call Assistant
+                          {startingLiveCallId === call.rawCall?.id ? "Starting Live Assistant..." : "Start with Live Call Assistant"}
                         </Button>
                       </div>
                     </div>
@@ -1344,5 +1546,6 @@ export function RepPerformanceDashboard() {
         }}
       />
     </div>
+    </>
   );
 }

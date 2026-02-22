@@ -213,7 +213,7 @@ Return JSON:
 }
 
 /**
- * Agent 2: Discovery Coach 🔍
+ * Agent 2: Discovery Coach 
  * Analyzes how well rep qualifies prospects and uncovers needs
  */
 export async function runDiscoveryCoachAgent(callId: string, transcript: any[], benchmarkContext: string = '') {

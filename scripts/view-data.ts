@@ -6,65 +6,65 @@ const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXB
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 async function viewData() {
-  console.log('📊 MEVCUT VERİLER\n');
+  console.log('📊 EXISTING DATA\n');
   console.log('='.repeat(80));
 
   // CALLS TABLE
-  console.log('\n📞 CALLS TABLOSU (6 kayıt)\n');
+  console.log('\n📞 CALLS TABLE\n');
   const { data: calls, error: callsError } = await supabase
     .from('calls')
     .select('*')
     .order('id', { ascending: true });
 
   if (callsError) {
-    console.log('❌ Hata:', callsError.message);
+    console.log('❌ Error:', callsError.message);
   } else if (calls && calls.length > 0) {
-    console.log('Sütunlar:', Object.keys(calls[0]).join(', '));
-    console.log('\nVeriler:');
+    console.log('Columns:', Object.keys(calls[0]).join(', '));
+    console.log('\nData:');
     calls.forEach((call, idx) => {
-      console.log(`\n${idx + 1}. Kayıt:`);
+      console.log(`\n${idx + 1}. Record:`);
       console.log(JSON.stringify(call, null, 2));
     });
   }
 
   // ANALYSIS TABLE
   console.log('\n\n' + '='.repeat(80));
-  console.log('\n📊 ANALYSIS TABLOSU (3 kayıt)\n');
+  console.log('\n📊 ANALYSIS TABLE\n');
   const { data: analysis, error: analysisError } = await supabase
     .from('analysis')
     .select('*')
     .order('id', { ascending: true });
 
   if (analysisError) {
-    console.log('❌ Hata:', analysisError.message);
+    console.log('❌ Error:', analysisError.message);
   } else if (analysis && analysis.length > 0) {
-    console.log('Sütunlar:', Object.keys(analysis[0]).join(', '));
-    console.log('\nVeriler:');
+    console.log('Columns:', Object.keys(analysis[0]).join(', '));
+    console.log('\nData:');
     analysis.forEach((item, idx) => {
-      console.log(`\n${idx + 1}. Kayıt:`);
+      console.log(`\n${idx + 1}. Record:`);
       console.log(JSON.stringify(item, null, 2));
     });
   }
 
   // TRANSCRIPTS TABLE
   console.log('\n\n' + '='.repeat(80));
-  console.log('\n📝 TRANSCRIPTS TABLOSU\n');
+  console.log('\n📝 TRANSCRIPTS TABLE\n');
   const { data: transcripts, error: transcriptError } = await supabase
     .from('transcripts')
     .select('*')
     .limit(3);
 
   if (transcriptError) {
-    console.log('❌ Hata:', transcriptError.message);
+    console.log('❌ Error:', transcriptError.message);
   } else if (transcripts && transcripts.length > 0) {
-    console.log('Sütunlar:', Object.keys(transcripts[0]).join(', '));
-    console.log('\nVeriler:');
+    console.log('Columns:', Object.keys(transcripts[0]).join(', '));
+    console.log('\nData:');
     transcripts.forEach((item, idx) => {
-      console.log(`\n${idx + 1}. Kayıt:`);
+      console.log(`\n${idx + 1}. Record:`);
       console.log(JSON.stringify(item, null, 2));
     });
   } else {
-    console.log('⚠️  Boş tablo - yapıyı görmek için örnek bir kayıt ekleyelim mi?');
+    console.log('⚠️  Empty table - would you like to add a sample record to view the structure?');
   }
 }
 

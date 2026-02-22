@@ -1,16 +1,15 @@
 import OpenAI from 'openai';
 
-const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
 
-// Check if API key is configured
-if (!apiKey || apiKey === 'YOUR_OPENAI_API_KEY_HERE') {
-  console.warn('⚠️ OpenAI API key not configured. AI Chat will use fallback responses.');
+if (!apiKey) {
+  console.warn('⚠️ VITE_OPENAI_API_KEY is not defined – check your .env.local file.');
 }
 
-const openai = apiKey && apiKey !== 'YOUR_OPENAI_API_KEY_HERE'
+const openai = apiKey
   ? new OpenAI({
-      apiKey: apiKey,
-      dangerouslyAllowBrowser: true // For development - move to backend in production
+      apiKey,
+      dangerouslyAllowBrowser: true, // Dev only – use backend proxy in production
     })
   : null;
 
@@ -177,7 +176,7 @@ export async function sendChatMessage(
   context: CoachingContext
 ): Promise<string> {
   if (!openai) {
-    throw new Error('OpenAI API key not configured. Please add your API key to .env.local');
+    throw new Error('OpenAI API key is missing. Set VITE_OPENAI_API_KEY in .env.local.');
   }
 
   try {
@@ -200,13 +199,55 @@ export async function sendChatMessage(
   }
 }
 
+// Low-latency live coaching helper (short actionable output)
+export async function generateLiveMicroTip(input: {
+  transcriptSnippet: string;
+  customerName?: string;
+  callType?: string;
+}): Promise<string> {
+  if (!openai) {
+    throw new Error('OpenAI API key is missing. Set VITE_OPENAI_API_KEY in .env.local.');
+  }
+
+  const prompt = `You are a real-time sales coach.
+
+Context:
+- Customer: ${input.customerName || 'Unknown'}
+- Call type: ${input.callType || 'Call'}
+- Latest transcript snippet: ${input.transcriptSnippet}
+
+Return very short coaching output in this exact format:
+1) Next best sentence (one sentence the rep can say now)
+2) Risk alert (max 8 words)
+3) Goal for next 30 seconds (one short line)
+
+Keep total output under 70 words.`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'You provide instant, concise, tactical coaching during live sales calls.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.2,
+      max_tokens: 120,
+    });
+
+    return response.choices[0]?.message?.content || 'No coaching tip generated.';
+  } catch (error) {
+    console.error('OpenAI live micro-tip error:', error);
+    throw new Error('Failed to generate live coaching tip.');
+  }
+}
+
 // Streaming chat function (for real-time typing effect)
 export async function* streamChatMessage(
   messages: ChatMessage[],
   context: CoachingContext
 ): AsyncGenerator<string, void, unknown> {
   if (!openai) {
-    throw new Error('OpenAI API key not configured. Please add your API key to .env.local');
+    throw new Error('OpenAI API key is missing. Set VITE_OPENAI_API_KEY in .env.local.');
   }
 
   try {
@@ -232,6 +273,178 @@ export async function* streamChatMessage(
   } catch (error) {
     console.error('OpenAI Streaming Error:', error);
     throw new Error('Failed to stream AI response. Please try again.');
+  }
+}
+
+// =====================================================
+// MEETING ASSISTANT – REAL-TIME AI COACHING
+// =====================================================
+
+export interface MeetingMessage {
+  id: string;
+  speaker: 'rep' | 'customer' | 'system';
+  text: string;
+  timestamp: string;
+}
+
+/**
+ * AI-powered speaker detection.
+ * Given conversation history + a new utterance, AI decides if the speaker
+ * is the rep or the customer based on context, tone, and content.
+ */
+export async function detectSpeaker(input: {
+  newUtterance: string;
+  conversationHistory: MeetingMessage[];
+  customerName: string;
+  callType: string;
+}): Promise<'rep' | 'customer'> {
+  if (!openai) return 'rep';
+
+  const historyText = input.conversationHistory.slice(-6)
+    .map(m => `[${m.speaker.toUpperCase()}] ${m.text}`)
+    .join('\n');
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a speaker-diarization assistant for a live sales call.
+Given the conversation history and a new spoken sentence, decide who said it: the sales REP or the CUSTOMER.
+
+Clues:
+- REP typically: pitches product, asks discovery questions, handles objections, uses sales language, offers demos/pricing
+- CUSTOMER typically: asks about price/features, raises concerns/objections, talks about their company/needs, says "we need", "our team"
+
+Customer name: ${input.customerName}
+Call type: ${input.callType}
+
+Reply with ONLY one word: REP or CUSTOMER`
+        },
+        {
+          role: 'user',
+          content: `Conversation so far:\n${historyText || '(start of call)'}\n\nNew utterance: "${input.newUtterance}"\n\nWho said this? REP or CUSTOMER?`
+        }
+      ],
+      temperature: 0,
+      max_tokens: 5,
+    });
+
+    const answer = (response.choices[0]?.message?.content || '').trim().toUpperCase();
+    return answer.includes('CUSTOMER') ? 'customer' : 'rep';
+  } catch {
+    return 'rep';
+  }
+}
+
+/**
+ * Stream real-time meeting coaching based on full conversation context.
+ * Uses gpt-4o-mini with streaming for sub-2s first-token latency.
+ */
+export async function* streamMeetingCoaching(input: {
+  conversationHistory: MeetingMessage[];
+  customerName: string;
+  callType: string;
+  kbContext?: string;
+}): AsyncGenerator<string, void, unknown> {
+  if (!openai) {
+    throw new Error('OpenAI API key is missing.');
+  }
+
+  const conversationText = input.conversationHistory
+    .map(m => `[${m.speaker.toUpperCase()}] ${m.text}`)
+    .join('\n');
+
+  const systemPrompt = `You are a real-time AI Meeting Assistant embedded in a sales coaching platform.
+You watch the live conversation and provide instant, actionable coaching to the sales rep.
+
+RULES:
+- Be extremely concise (max 60 words total)
+- Output EXACTLY this format, nothing else:
+
+💡 **Say Next:** <one sentence the rep should say right now>
+⚠️ **Risk:** <max 8 words about any risk or missed opportunity>
+🎯 **30s Goal:** <one short action for the next 30 seconds>
+📊 **Sentiment:** <Positive/Neutral/Negative + 2 words why>
+
+${input.kbContext ? `\nKNOWLEDGE BASE CONTEXT (use if relevant):\n${input.kbContext}\n` : ''}
+
+Customer: ${input.customerName}
+Call Type: ${input.callType}`;
+
+  try {
+    const stream = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Live conversation so far:\n\n${conversationText}\n\nProvide instant coaching for the rep.` }
+      ],
+      temperature: 0.15,
+      max_tokens: 180,
+      stream: true,
+    });
+
+    for await (const chunk of stream) {
+      const content = chunk.choices[0]?.delta?.content || '';
+      if (content) {
+        yield content;
+      }
+    }
+  } catch (error) {
+    console.error('Meeting coaching stream error:', error);
+    throw new Error('Failed to stream meeting coaching.');
+  }
+}
+
+/**
+ * Generate a post-meeting summary from full conversation.
+ */
+export async function generateMeetingSummary(input: {
+  conversationHistory: MeetingMessage[];
+  customerName: string;
+  callType: string;
+}): Promise<string> {
+  if (!openai) {
+    throw new Error('OpenAI API key is missing.');
+  }
+
+  const conversationText = input.conversationHistory
+    .map(m => `[${m.speaker.toUpperCase()}] ${m.text}`)
+    .join('\n');
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a sales call analyst. Provide a structured post-call summary.`
+        },
+        {
+          role: 'user',
+          content: `Customer: ${input.customerName}
+Call Type: ${input.callType}
+Conversation:
+${conversationText}
+
+Provide a summary with:
+1. **Call Score** (0-100)
+2. **Key Takeaways** (3 bullets)
+3. **Action Items** (numbered list)
+4. **Objections Raised** (list with how they were handled)
+5. **Next Steps** (what should happen after this call)
+6. **Rep Performance** (2-3 sentence assessment)`
+        }
+      ],
+      temperature: 0.3,
+      max_tokens: 600,
+    });
+
+    return response.choices[0]?.message?.content || 'Summary could not be generated.';
+  } catch (error) {
+    console.error('Meeting summary error:', error);
+    throw new Error('Failed to generate meeting summary.');
   }
 }
 

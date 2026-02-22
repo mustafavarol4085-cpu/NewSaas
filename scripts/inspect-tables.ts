@@ -6,14 +6,14 @@ const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXB
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 async function inspectTables() {
-  console.log('🔍 Tablo yapıları inceleniyor...\n');
+  console.log('🔍 Inspecting table structures...\n');
 
   const tables = ['calls', 'analysis', 'transcript', 'users', 'reps', 'managers', 'performance_dimensions', 'ai_insights', 'scheduled_calls'];
 
   for (const tableName of tables) {
     try {
       console.log(`\n${'='.repeat(60)}`);
-      console.log(`📋 ${tableName.toUpperCase()} TABLOSU`);
+      console.log(`📋 ${tableName.toUpperCase()} TABLE`);
       console.log('='.repeat(60));
 
       // Get a sample record to see structure
@@ -23,7 +23,7 @@ async function inspectTables() {
         .limit(1);
 
       if (error) {
-        console.log(`❌ Hata: ${error.message}`);
+        console.log(`❌ Error: ${error.message}`);
         continue;
       }
 
@@ -32,10 +32,10 @@ async function inspectTables() {
         .from(tableName)
         .select('*', { count: 'exact', head: true });
 
-      console.log(`\n📊 Toplam Kayıt: ${count || 0}`);
+      console.log(`\n📊 Total Records: ${count || 0}`);
 
       if (data && data.length > 0) {
-        console.log('\n✅ Mevcut Sütunlar:');
+        console.log('\n✅ Existing Columns:');
         const sample = data[0];
         Object.entries(sample).forEach(([key, value]) => {
           const type = value === null ? 'null' : typeof value;
@@ -47,27 +47,27 @@ async function inspectTables() {
 
         // Show full sample for calls table
         if (tableName === 'calls') {
-          console.log('\n📄 Örnek Kayıt:');
+          console.log('\n📄 Sample Record:');
           console.log(JSON.stringify(sample, null, 2));
         }
       } else {
-        console.log('\n⚠️  Tablo boş - örnek kayıt yok');
-        console.log('   (Sütun yapısını görebilmek için en az 1 kayıt ekleyin)');
+        console.log('\n⚠️  Table is empty - no sample records');
+        console.log('   (Add at least 1 record to view column structure)');
       }
 
     } catch (error: any) {
-      console.log(`\n❌ ${tableName} kontrol edilemedi: ${error.message}`);
+      console.log(`\n❌ ${tableName} could not be checked: ${error.message}`);
     }
   }
 
   // Summary
   console.log('\n\n' + '='.repeat(60));
-  console.log('📊 ÖZET');
+  console.log('📊 SUMMARY');
   console.log('='.repeat(60));
-  console.log('\n✅ Mevcut ve Dolu Tablolar:');
-  console.log('   • calls (6 kayıt)');
-  console.log('   • analysis (3 kayıt)');
-  console.log('\n⚠️  Mevcut Ama Boş Tablolar:');
+  console.log('\n✅ Existing and Populated Tables:');
+  console.log('   • calls (6 records)');
+  console.log('   • analysis (3 records)');
+  console.log('\n⚠️  Existing But Empty Tables:');
   console.log('   • transcript');
   console.log('   • users');
   console.log('   • reps');

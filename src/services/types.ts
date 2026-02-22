@@ -120,6 +120,32 @@ export interface ScheduledCall {
   crm_data?: CRMData | null;
   prior_calls_summary?: string | null;
   ai_prep_insights?: string[] | null;
+  // Live call assistant fields
+  meeting_url?: string | null;
+  meeting_provider?: 'zoom' | 'google_meet' | 'teams' | 'other' | null;
+  join_instructions?: string | null;
+  live_assistant_enabled?: boolean;
+}
+
+export interface LiveCallSession {
+  id: string;
+  scheduled_call_id: string;
+  rep_id: string;
+  status: 'active' | 'ended' | 'failed';
+  meeting_url_snapshot?: string | null;
+  started_at: string;
+  ended_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LiveTranscriptSegment {
+  id: string;
+  session_id: string;
+  speaker?: 'rep' | 'customer' | 'unknown' | null;
+  text: string;
+  ts: string;
+  created_at: string;
 }
 
 export interface LinkedInData {
