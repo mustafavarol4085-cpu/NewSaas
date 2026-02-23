@@ -18,7 +18,6 @@ import {
 import {
   streamMeetingCoaching,
   generateMeetingSummary,
-  detectSpeaker,
   type MeetingMessage,
 } from "../../../services/openaiService";
 import { endLiveCallSession } from "../../../services/liveCallService";
@@ -95,13 +94,20 @@ export function MeetingAssistant({
   const [micSupported, setMicSupported] = useState(true);
   const [micError, setMicError] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
   const messagesRef = useRef<MeetingMessage[]>([]);
+
+  // Tab audio capture (for Zoom/Meet audio)
+  const tabStreamRef = useRef<MediaStream | null>(null);
+  const tabAudioContextRef = useRef<AudioContext | null>(null);
+  const tabAnalyserRef = useRef<AnalyserNode | null>(null);
+  const [isTabCaptureActive, setIsTabCaptureActive] = useState(false);
 
   // AI coaching state
   const [coachingCards, setCoachingCards] = useState<CoachingCard[]>([]);
   const [isCoaching, setIsCoaching] = useState(false);
   const [autoCoach, setAutoCoach] = useState(true);
-  const [isDetectingSpeaker, setIsDetectingSpeaker] = useState(false);
 
   // Session state
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -166,6 +172,44 @@ export function MeetingAssistant({
       second: "2-digit",
     });
 
+  // ─── Voice Feature Extraction ─────────────────────
+  const extractVoiceFeatures = (analyser: AnalyserNode): number[] => {
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(dataArray);
+    
+    // Extract key frequency bands (voice signature)
+    const bands = 32;
+    const bandSize = Math.floor(dataArray.length / bands);
+    const features: number[] = [];
+    
+    for (let i = 0; i < bands; i++) {
+      const start = i * bandSize;
+      const end = start + bandSize;
+      const bandAvg = dataArray.slice(start, end).reduce((a, b) => a + b, 0) / bandSize;
+      features.push(bandAvg);
+    }
+    
+    return features;
+  };
+
+  const comparVoiceProfiles = (profile1: number[], profile2: number[]): number => {
+    if (profile1.length !== profile2.length) return 0;
+    
+    // Cosine similarity
+    let dotProduct = 0;
+    let mag1 = 0;
+    let mag2 = 0;
+    
+    for (let i = 0; i < profile1.length; i++) {
+      dotProduct += profile1[i] * profile2[i];
+      mag1 += profile1[i] * profile1[i];
+      mag2 += profile2[i] * profile2[i];
+    }
+    
+    const magnitude = Math.sqrt(mag1) * Math.sqrt(mag2);
+    return magnitude === 0 ? 0 : (dotProduct / magnitude) * 100;
+  };
+
   // ─── AI Coaching (streaming) ───────────────────────────
   const triggerCoaching = useCallback(
     async (allMessages: MeetingMessage[]) => {
@@ -226,24 +270,22 @@ export function MeetingAssistant({
     [customerName, callType]
   );
 
-  // ─── Add message with AI speaker detection ─────────────
-  const addMessageWithSpeakerDetection = useCallback(
-    async (text: string) => {
+  // ─── Add message with voice-based speaker detection ─────────────
+  const addMessage = useCallback(
+    async (text: string, forceSpeaker?: "rep" | "customer") => {
       if (!text.trim()) return;
 
-      setIsDetectingSpeaker(true);
-
-      // AI detects speaker
-      let speaker: "rep" | "customer" = "rep";
-      try {
-        speaker = await detectSpeaker({
-          newUtterance: text,
-          conversationHistory: messagesRef.current,
-          customerName,
-          callType,
-        });
-      } catch {
-        // fallback to rep
+      let speaker: "rep" | "customer" = forceSpeaker || "rep";
+      
+      // Compare microphone vs tab audio to detect speaker
+      if (!forceSpeaker && analyserRef.current && tabAnalyserRef.current) {
+        const micFeatures = extractVoiceFeatures(analyserRef.current);
+        const tabFeatures = extractVoiceFeatures(tabAnalyserRef.current);
+        const similarity = comparVoiceProfiles(micFeatures, tabFeatures);
+        
+        // High similarity = same audio = rep speaking into mic
+        // Low similarity = different audio = customer from meeting tab
+        speaker = similarity > 70 ? "rep" : "customer";
       }
 
       const newMessage: MeetingMessage = {
@@ -260,24 +302,91 @@ export function MeetingAssistant({
         [speaker]: prev[speaker] + 1,
       }));
 
-      setIsDetectingSpeaker(false);
-
-      // Auto AI coaching
       if (autoCoachRef.current) {
         triggerCoaching(updatedMessages);
       }
     },
-    [customerName, callType, triggerCoaching]
+    [triggerCoaching]
   );
 
+  // ─── Tab Audio Capture (Zoom/Meet) ──────────────────
+  const startTabCapture = useCallback(async (): Promise<boolean> => {
+    try {
+      const tabStream = await navigator.mediaDevices.getDisplayMedia({
+        video: {
+          displaySurface: "browser",
+        },
+        audio: true,
+      });
+
+      if (!tabStream.getAudioTracks().length) {
+        setIsTabCaptureActive(false);
+        setMicError("No tab audio captured. Select Google Meet tab and enable 'Share tab audio'.");
+        tabStream.getTracks().forEach((track) => track.stop());
+        return false;
+      }
+
+      const tabAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const tabAnalyser = tabAudioContext.createAnalyser();
+      const tabSource = tabAudioContext.createMediaStreamSource(tabStream);
+      tabSource.connect(tabAnalyser);
+      tabAnalyser.fftSize = 512;
+
+      tabStreamRef.current = tabStream;
+      tabAudioContextRef.current = tabAudioContext;
+      tabAnalyserRef.current = tabAnalyser;
+      setIsTabCaptureActive(true);
+
+      // Handle tab capture stop
+      tabStream.getAudioTracks()[0].onended = () => {
+        setIsTabCaptureActive(false);
+        setMicError("Tab audio capture stopped. Please restart.");
+      };
+      return true;
+    } catch (err) {
+      console.error("Tab capture failed:", err);
+      const errorName = (err as DOMException)?.name;
+      if (errorName === "NotAllowedError") {
+        setMicError("Tab capture permission denied. Please allow screen share and try again.");
+      } else if (errorName === "AbortError") {
+        setMicError("Tab capture cancelled. Please click 'Capture Tab Audio' and select Meet tab.");
+      } else {
+        setMicError("Failed to capture tab audio. Select Google Meet tab and enable 'Share tab audio'.");
+      }
+      return false;
+    }
+  }, []);
+
   // ─── Speech Recognition (Microphone) ──────────────────
-  const startListening = useCallback(() => {
+  const startListening = useCallback(async () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
       setMicError("Browser does not support speech recognition. Use Chrome.");
       return;
     }
 
+    // 1. Start tab audio capture first
+    const tabCaptureOk = await startTabCapture();
+    if (!tabCaptureOk) {
+      return;
+    }
+
+    // 2. Setup microphone audio analysis
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const analyser = audioContext.createAnalyser();
+      const microphone = audioContext.createMediaStreamSource(stream);
+      microphone.connect(analyser);
+      analyser.fftSize = 512;
+      
+      audioContextRef.current = audioContext;
+      analyserRef.current = analyser;
+    } catch (err) {
+      console.warn("Could not setup audio analysis:", err);
+    }
+
+    // 3. Setup speech recognition
     const recognition = new SR();
     recognition.continuous = true;
     recognition.interimResults = true;
@@ -295,7 +404,7 @@ export function MeetingAssistant({
         if (result.isFinal) {
           const finalText = result[0].transcript.trim();
           if (finalText.length > 2) {
-            addMessageWithSpeakerDetection(finalText);
+            addMessage(finalText); // AI will detect speaker
           }
           setInterimText("");
         } else {
@@ -336,7 +445,7 @@ export function MeetingAssistant({
       setMicError("Could not start microphone.");
       setIsListening(false);
     }
-  }, [addMessageWithSpeakerDetection]);
+  }, [addMessage, startTabCapture]);
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current) {
@@ -344,6 +453,24 @@ export function MeetingAssistant({
       recognitionRef.current = null;
       ref.stop();
     }
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+    analyserRef.current = null;
+
+    // Stop tab capture
+    if (tabStreamRef.current) {
+      tabStreamRef.current.getTracks().forEach(track => track.stop());
+      tabStreamRef.current = null;
+    }
+    if (tabAudioContextRef.current) {
+      tabAudioContextRef.current.close();
+      tabAudioContextRef.current = null;
+    }
+    tabAnalyserRef.current = null;
+    setIsTabCaptureActive(false);
+
     setIsListening(false);
     setInterimText("");
   }, []);
@@ -354,6 +481,10 @@ export function MeetingAssistant({
       if (recognitionRef.current) {
         recognitionRef.current.stop();
         recognitionRef.current = null;
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
       }
     };
   }, []);
@@ -371,7 +502,7 @@ export function MeetingAssistant({
     const text = inputText.trim();
     if (!text) return;
     setInputText("");
-    addMessageWithSpeakerDetection(text);
+    addMessage(text); // AI will detect speaker
     setTimeout(() => inputRef.current?.focus(), 50);
   };
 
@@ -495,16 +626,25 @@ export function MeetingAssistant({
             <span className="text-sm font-mono">{formatElapsed(elapsedTime)}</span>
           </div>
 
-          {/* Speaker detection indicator */}
-          {isDetectingSpeaker && (
-            <>
-              <div className="h-5 w-px bg-gray-600" />
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
-                <span className="text-[10px] text-yellow-400">detecting speaker...</span>
-              </div>
-            </>
+          <div className="h-5 w-px bg-gray-600" />
+
+          {/* Tab capture status */}
+          {isTabCaptureActive ? (
+            <span className="text-[10px] text-green-400">✓ Tab Audio Captured</span>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-orange-400">⚠ Tab Audio Not Captured</span>
+              <Button
+                onClick={startTabCapture}
+                className="h-6 px-2 text-[10px] bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/40"
+              >
+                Capture Tab Audio
+              </Button>
+            </div>
           )}
+
+          <div className="h-5 w-px bg-gray-600" />
+          <span className="text-[9px] text-gray-500">Mic vs Tab comparison active</span>
         </div>
 
         <div className="flex items-center gap-3">
