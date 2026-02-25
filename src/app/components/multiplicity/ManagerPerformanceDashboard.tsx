@@ -705,6 +705,7 @@ Customer: Yes, I'm sure. Goodbye.`,
                 hour: "2-digit",
                 minute: "2-digit",
                 hour12: true,
+                timeZone: "America/Chicago",
               })
             : "TBD",
           duration: call.duration_minutes ? `${call.duration_minutes} min` : "30 min",

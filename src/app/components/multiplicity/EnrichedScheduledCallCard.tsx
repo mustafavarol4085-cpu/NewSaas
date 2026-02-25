@@ -39,6 +39,7 @@ export function EnrichedScheduledCallCard({ call }: EnrichedScheduledCallCardPro
               hour: 'numeric',
               minute: '2-digit',
               hour12: true,
+              timeZone: 'America/Chicago',
             })} • {call.duration_minutes} min
           </p>
         </div>
