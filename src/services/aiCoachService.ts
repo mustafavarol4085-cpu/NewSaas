@@ -3,7 +3,6 @@
  */
 
 import { supabase } from './supabase';
-import { triggerCallCompletedEmail } from './n8nService';
 import type { 
   AgentAnalysis, 
   Objection, 
@@ -193,14 +192,6 @@ export async function getAICoachingSummary(callId: string) {
  * Get AI coaching summary and trigger email notification
  */
 export async function getAICoachingSummaryWithEmail(callId: string) {
-  // Get coaching data
-  const summary = await getAICoachingSummary(callId);
-  
-  // Trigger email notification in background (non-blocking)
-  triggerCallCompletedEmail(callId).catch(err => 
-    console.error('Email notification failed (non-critical):', err)
-  );
-  
-  return summary;
+  return getAICoachingSummary(callId);
 }
 

@@ -49,7 +49,7 @@ import {
   useAllInsights,
   useAllKeyMoments
 } from "../../../services/hooks";
-import { getAICoachingSummaryWithEmail } from "../../../services/aiCoachService";
+import { getAICoachingSummary } from "../../../services/aiCoachService";
 import { addLiveTranscriptSegment, endLiveCallSession, startLiveCallSession } from "../../../services/liveCallService";
 import { generateLiveMicroTip } from "../../../services/openaiService";
 
@@ -324,8 +324,7 @@ export function RepPerformanceDashboard() {
         setLoadingAICoaching(true);
         try {
           console.log('🔍 Fetching AI coaching data for call ID:', supabaseCall.id);
-          // Use the new function that also triggers email notification
-          const data = await getAICoachingSummaryWithEmail(supabaseCall.id);
+          const data = await getAICoachingSummary(supabaseCall.id);
           console.log('✅ AI Coaching Data received:', {
             masterReport: data.masterReport,
             objectionsCount: data.objections?.length || 0,
@@ -333,7 +332,6 @@ export function RepPerformanceDashboard() {
             objections: data.objections,
             questions: data.questions
           });
-          console.log('📧 Email notification triggered via N8N webhook');
           if (!abortController.signal.aborted) {
             setAiCoachingData(data);
           }
